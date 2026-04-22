@@ -4,6 +4,7 @@
 - ESPHome 2026.4.1 — built-in `ld2450` component
 - Home Assistant — native API integration
 - HLKRadarTool (Android) — zone configuration over Bluetooth
+- Raspberry Pi + `cec-utils` — HDMI CEC commands to wake/standby the 27" display based on presence
 
 ## ESPHome Config
 
@@ -70,6 +71,23 @@ sensor:
 
 ## Zone Configuration
 Zones defined via HLKRadarTool over Bluetooth. 2 zones configured to cover the hallway, excluding adjacent doorways. Zones are stored in LD2450 flash and survive ESP32 reboots and OTA updates. ESPHome does not push zone coordinates, so the app-defined zones remain authoritative.
+
+**Zones must be redone after physical mounting.** With the sensor on the end wall, the Y axis runs down the hallway length (toward the front door) and X covers the width. Previous zones were configured before final placement and are no longer valid.
+
+## HDMI CEC Display Control
+The Raspberry Pi can send CEC commands over HDMI to wake or standby the display:
+
+```bash
+# Wake display
+echo "on 0" | cec-client -s -d 1
+
+# Standby display
+echo "standby 0" | cec-client -s -d 1
+```
+
+Install with: `sudo apt install cec-utils`
+
+HA triggers these via SSH command or a local shell script called by an automation based on the `has_target` binary sensor.
 
 ## Lessons Learned
 - **CP2102 driver required on Windows** — ESPHome reports "UNKNOWN device" if the Silicon Labs CP210x driver isn't installed. Install it first; no manual bootloader mode needed.
