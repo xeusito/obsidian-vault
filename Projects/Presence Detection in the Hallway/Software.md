@@ -72,7 +72,7 @@ sensor:
 Zones defined via HLKRadarTool over Bluetooth. 2 zones configured to cover the hallway, excluding adjacent doorways. Zones are stored in LD2450 flash and survive ESP32 reboots and OTA updates. ESPHome does not push zone coordinates, so the app-defined zones remain authoritative.
 
 ## Lessons Learned
-- **First flash needs manual bootloader mode** — hold BOOT, press+release EN, release BOOT, then click Install. Not needed for OTA updates after.
+- **CP2102 driver required on Windows** — ESPHome reports "UNKNOWN device" if the Silicon Labs CP210x driver isn't installed. Install it first; no manual bootloader mode needed.
 - **`throttle` removed** in ESPHome 2026.x — the `ld2450` component no longer accepts `throttle`; use per-sensor filters instead.
 - **`distance_resolution` renamed to `resolution`** in the target sensor block.
 - **Avoid trial firmware** on the LD2450 — trial builds (e.g. `2.14.25112412`) expire and lock the app behind an authorization code gate with no public .bin available.
