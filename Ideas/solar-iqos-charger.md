@@ -7,3 +7,7 @@ Keep IQOS devices charged and protected from cold weather. There should be autom
 
 ## Next step
 Define requirements
+
+
+Notes
+use peltier modules for both cooling and heating

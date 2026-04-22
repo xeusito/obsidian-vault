@@ -17,8 +17,8 @@ A solar-powered e-ink information display mounted behind the front door. Shows c
 
 | Item                   | State     |
 | ---------------------- | --------- |
-| ESP32 board confirmed  | ⬜ pending |
-| Parts ordered          | ⬜ pending |
+| ESP32 board confirmed  | 🟡 ordered — Seeed XIAO ESP32C6 |
+| Parts ordered          | ✅ complete |
 | ESPHome config started | ⬜ pending |
 | Prototype wired        | ⬜ pending |
 | Enclosure designed     | ⬜ pending |
