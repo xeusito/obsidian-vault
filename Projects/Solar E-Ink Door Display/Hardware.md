@@ -1,7 +1,6 @@
 ---
 tags: [hardware, bom, wiring]
 ---
-
 # Hardware
 
 [[index|← Project Overview]]
