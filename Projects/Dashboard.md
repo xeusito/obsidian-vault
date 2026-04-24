@@ -1,11 +1,11 @@
 # Projects Dashboard
 
 ## 🟢 In Progress
-- [[🟢 Presence Detection in the Hallway/index|Presence Detection in the Hallway]]
+- [Presence Detection in the Hallway](<🟢 Presence Detection in the Hallway/index.md>)
 
 ## 🟡 On Hold
-- [[🟡 Solar E-Ink Door Display/index|Solar E-Ink Door Display]] — waiting for Kiwi parcel
+- [Solar E-Ink Door Display](<🟡 Solar E-Ink Door Display/index.md>) — waiting for Kiwi parcel
 
 ## 💡 Ideas
-- [[solar-iqos-charger|Solar IQOS Charger]]
-- [[grocery-list-automation|Grocery List Automation]]
+- [Solar IQOS Charger](../Ideas/solar-iqos-charger.md)
+- [Grocery List Automation](../Ideas/grocery-list-automation.md)
