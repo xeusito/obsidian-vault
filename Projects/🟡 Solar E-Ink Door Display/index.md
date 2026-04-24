@@ -1,5 +1,6 @@
 ---
-status: in-progress
+status: on-hold
+on_hold_reason: Waiting for Kiwi Electronics parcel (ESP32C6, MAX17048, buttons, resistors, JST cables)
 started: 2026-04-21
 tags: [project, hardware, esp32, home-assistant, esphome]
 ---
