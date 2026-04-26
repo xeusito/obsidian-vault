@@ -1,7 +1,8 @@
 ---
-status: finished — playable, score persists, 30 fps stable
-started: 2026-04-25
-finished: 2026-04-25
+status: done
+priority: low
+startDate: 2026-04-25
+dueDate: 2026-04-25
 tags: [project, hardware, esp32-c6, arduino, game, lafvin]
 ---
 

@@ -1,6 +1,8 @@
 ---
-status: hardware installed, streaming to HA
-started: 2026-04-22
+status: in-progress
+priority: high
+startDate: 2026-04-22
+dueDate: 2026-05-17
 tags: [project, hardware, esp32, home-assistant, esphome, mmwave]
 ---
 
