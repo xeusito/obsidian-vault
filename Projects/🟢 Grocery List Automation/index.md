@@ -59,6 +59,9 @@ German, Spanish, English — DE → ES → EN fallback when reading product name
 - [ ] Design or find a case for the Pi camera module
 - [ ] Print the case(s) and mount everything in the kitchen
 
+## Credentials
+- SSH user `pi` password for `192.168.0.162` is stored in **Bitwarden**.
+
 ## Key Decisions
 - **Sync via HA `todo.shopping` entity** — Bring! integration already loaded in HA. One `todo.add_item` call, brand + quantity in the `description` field (maps to Bring!'s "Quantity, description…" field in the Android app).
 - **Display only — no LED or buzzer in MVP** — BTT TFT50 fullscreen colour flash handles all feedback. Buzzer deferred (wrong cable type); LED strip deferred.
