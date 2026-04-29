@@ -166,6 +166,17 @@ for (const [label, color] of [["Done","#79b58d"],["In Progress","#8b72be"],["Blo
 
 ## ⬜ To Do
 
+> [!todo] Downloads Assistant v2.0
+> **Due:** 2026-05-31 · **Priority:** Medium
+>
+> Browser-based Downloads folder assistant — AI chat + categorised file panels. Python agent on laptop, FastAPI + React on Proxmox LXC 226, Featherless.ai LLM.
+>
+> **Next:** enable OpenSSH on laptop → create LXC 226 → SSH key setup
+>
+> → [[🟡 Downloads Assistant v2.0/index|Open project]]
+
+---
+
 > [!todo] Grocery List Automation
 > **Due:** 2026-08-31 · **Priority:** Medium
 >
@@ -173,7 +184,7 @@ for (const [label, color] of [["Done","#79b58d"],["In Progress","#8b72be"],["Blo
 >
 > **Next:** order LCD + speaker amp → flash Pi OS → write Phase 1 daemon
 >
-> → [[🟡 Grocery List Automation/index|Open project]]
+> → [[🟢 Grocery List Automation/index|Open project]]
 
 ---
 
