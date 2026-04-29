@@ -4,6 +4,7 @@ import json
 import time
 import threading
 import datetime
+import subprocess
 import requests
 import pygame
 from collections import namedtuple
@@ -22,8 +23,12 @@ DATA_DIR       = os.getenv("DATA_DIR", "./data")
 UNKNOWN_LOG    = os.path.join(DATA_DIR, "unknown.jsonl")
 CUSTOM_MAP     = os.path.join(DATA_DIR, "custom_barcodes.json")
 
-FRONT_PHOTO = "/tmp/grocery_front.jpg"
-BACK_PHOTO  = "/tmp/grocery_back.jpg"
+FRONT_PHOTO   = "/tmp/grocery_front.jpg"
+BACK_PHOTO    = "/tmp/grocery_back.jpg"
+BLANK_TIMEOUT = 30  # seconds of inactivity before display off
+
+_last_activity: float = 0.0
+_screen_blanked: bool = False
 
 KEYMAP = {
     2:"1",3:"2",4:"3",5:"4",6:"5",7:"6",8:"7",9:"8",10:"9",11:"0",
@@ -274,6 +279,31 @@ def render_current():
     elif s == "webui_hint":     _render_webui_hint()
     elif s == "menu":           _render_menu()
 
+# ── Display power management ──────────────────────────────────────────────────
+
+def _mark_activity():
+    global _last_activity
+    _last_activity = time.time()
+
+def _blank_screen():
+    global _screen_blanked
+    if _screen_blanked:
+        return
+    _screen_blanked = True
+    screen.fill((0, 0, 0))
+    pygame.display.flip()
+    subprocess.run(["vcgencmd", "display_power", "0"], capture_output=True)
+
+def _wake_screen():
+    global _screen_blanked, _last_activity
+    if not _screen_blanked:
+        return
+    subprocess.run(["vcgencmd", "display_power", "1"], capture_output=True)
+    time.sleep(0.2)  # brief wait for panel to come back
+    _screen_blanked = False
+    _last_activity = time.time()
+    needs_render.set()
+
 # ── Background tasks ──────────────────────────────────────────────────────────
 
 def _thread(fn, *args):
@@ -332,6 +362,10 @@ def _webui_then_idle():
 # ── Touch handler ─────────────────────────────────────────────────────────────
 
 def handle_touch(pos):
+    if _screen_blanked:
+        _wake_screen()
+        return  # consume the tap; don't trigger buttons
+    _mark_activity()
     s, barcode, result = get_state("screen", "barcode", "result")
 
     if s == "idle":
@@ -491,6 +525,9 @@ def handle_barcode(barcode):
     barcode = barcode.strip()
     if not barcode:
         return
+    if _screen_blanked:
+        _wake_screen()
+    _mark_activity()
     if get_state("screen") not in ("idle", "known_ok", "known_err", "menu"):
         return
     set_state(screen="lookup", barcode=barcode)
@@ -545,6 +582,12 @@ def scanner_loop():
 # ── Main loop ─────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # Disable X11 auto-blanking so we control the display ourselves
+    subprocess.run(["xset", "-display", ":0", "s", "off"],      capture_output=True)
+    subprocess.run(["xset", "-display", ":0", "s", "noblank"],  capture_output=True)
+    subprocess.run(["xset", "-display", ":0", "-dpms"],         capture_output=True)
+
+    _mark_activity()
     set_state(screen="idle")
     threading.Thread(target=scanner_loop, daemon=True).start()
     print("Scanner daemon running. Ctrl+C to quit.")
@@ -560,6 +603,9 @@ if __name__ == "__main__":
             if needs_render.is_set():
                 needs_render.clear()
                 render_current()
+
+            if not _screen_blanked and time.time() - _last_activity > BLANK_TIMEOUT:
+                _blank_screen()
 
             time.sleep(0.05)
     except KeyboardInterrupt:

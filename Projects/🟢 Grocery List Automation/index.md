@@ -45,10 +45,18 @@ German, Spanish, English — DE → ES → EN fallback when reading product name
 | Phase 3 — OpenFoodFacts contribution upload   | ✅ done      |
 | Phase 3 — On-screen menu (Restart / Close)    | ✅ done      |
 | Phase 3 — Desktop icon to restart scanner     | ✅ done      |
+| Phase 3 — Screen auto-blank after 30 s idle   | ✅ done      |
 | Phase 4 — Pre-printed barcodes                | ⬜ planned   |
+| Phase 5 — 3D-printed case (screen + Pi)       | ⬜ planned   |
+| Phase 5 — Camera case (print or source)       | ⬜ planned   |
+| Phase 5 — Print case(s)                       | ⬜ planned   |
+| Phase 5 — Mount project in kitchen            | ⬜ planned   |
 
 ## Next Steps
 - [ ] Generate pre-printed barcode sheet for bulk/unlabelled items (coffee, flour, etc.)
+- [ ] Design or find a 3D-printable enclosure for the touchscreen + Pi
+- [ ] Design or find a case for the Pi camera module
+- [ ] Print the case(s) and mount everything in the kitchen
 
 ## Key Decisions
 - **Sync via HA `todo.shopping` entity** — Bring! integration already loaded in HA. One `todo.add_item` call, brand + quantity in the `description` field (maps to Bring!'s "Quantity, description…" field in the Android app).
