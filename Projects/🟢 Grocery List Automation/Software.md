@@ -166,10 +166,11 @@ Endpoints used:
 
 ## Web app (`webapp.py`) — Phase 2
 
-Flask app on port 5000, LAN-only. Two views:
+Flask app on port 5000, LAN-only. Two views + a control endpoint:
 
 1. **`/unknown`** — lists unresolved entries from `unknown.jsonl`. Type a name and hit "Add to Bring!" → calls HA, removes from queue, saves to `custom_barcodes.json`. "Dismiss" removes without adding. AI identification is done from the touchscreen, not here.
 2. **`/custom`** — full CRUD editor for `custom_barcodes.json`. Add, **Edit** (inline name change), and Delete. Used for pre-printed barcodes on bulk/unlabelled items (coffee jar, flour tin, etc.).
+3. **`POST /shutdown`** — invoked by the HA `rest_command.shutdown_grocery_scanner_pi` when the user taps the *Shutdown Pi* button on the thermal-warning push notification. Requires `Authorization: Bearer <HA_TOKEN>`; runs `sudo shutdown -h now` and returns 202.
 
 ### HA dashboard integration
 HA runs on HTTPS; browsers block HTTP iframes (mixed content). Solution: button card that opens the web UI in a new tab.
@@ -193,6 +194,42 @@ tap_action:
   4. Save (p.8)
 - **Device path:** `/dev/input/by-id/usb-Honeywell_Imaging___Mobility_7580_18362B50A8-event-kbd`
 - **evdev grab:** daemon exclusively grabs the device so keystrokes don't leak to the desktop.
+
+---
+
+## Thermal monitoring (`tempmon.py` + systemd timer)
+
+The Pi will be mounted directly behind the BTT TFT50 inside the SKADIS enclosure with no aluminium passive case, only stick-on heatsinks. We monitor temps and have a hard safety cut-off.
+
+### `tempmon.py`
+Reads `/sys/class/thermal/thermal_zone0/temp` (millidegrees → °C, one decimal), POSTs to HA's REST API to update `input_number.grocery_scanner_pi`, and runs `sudo /sbin/shutdown -h now` if temp ≥ 80 °C. One-shot script, fired by a systemd timer; no long-running daemon.
+
+```python
+POST {HA_URL}/api/services/input_number/set_value
+Authorization: Bearer {HA_TOKEN}
+{ "entity_id": "input_number.grocery_scanner_pi", "value": <float> }
+```
+
+### systemd units (`/etc/systemd/system/`)
+- `grocery-tempmon.service` — `Type=oneshot`, runs the script as `pi`.
+- `grocery-tempmon.timer` — `OnBootSec=30s`, `OnUnitActiveSec=30s` → fires every 30 s.
+
+30 s sampling means HA's `numeric_state ... for: 00:01:00` debounce requires at least 2 consecutive high samples before notifying — single-sample CPU-burst spikes are filtered out.
+
+### sudoers (`/etc/sudoers.d/grocery-scanner-shutdown`)
+```
+pi ALL=(ALL) NOPASSWD: /sbin/shutdown
+```
+Lets `tempmon.py` and the webapp's `/shutdown` route halt the Pi without a password.
+
+### HA side
+- Helper: `input_number.grocery_scanner_pi` (0–100, °C, mode `box`).
+- `rest_command.shutdown_grocery_scanner_pi` → `POST http://192.168.0.162:5000/shutdown` with the long-lived token (stored in `secrets.yaml`).
+- Automation **Grocery Scanner Pi — thermal alerts** (`automation.grocery_scanner_pi_thermal_alerts`) — single automation, three triggers dispatched by `trigger.id`:
+  - `warning` — `> 70 °C for 1 min` → mobile notification with a *Shutdown Pi* action button (`action: SHUTDOWN_GROCERY_PI`).
+  - `critical` — `> 80 °C` → informational notification (Pi is already shutting itself down).
+  - `shutdown_action` — `mobile_app_notification_action` event → fires `rest_command.shutdown_grocery_scanner_pi` and confirms.
+- All three notifications share `tag: grocery_pi_thermal` so a follow-up replaces the previous one on the OnePlus.
 
 ---
 

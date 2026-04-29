@@ -1,0 +1,9 @@
+[Unit]
+Description=Grocery scanner Pi temperature reporter
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=pi
+WorkingDirectory=/home/pi/grocery-scanner
+ExecStart=/usr/bin/python3 /home/pi/grocery-scanner/tempmon.py

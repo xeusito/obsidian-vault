@@ -10,8 +10,8 @@ tags: [project, raspberry-pi, home-assistant, bring, openfoodfacts, barcode]
 A kitchen-counter scan-and-done station that adds items to the Bring! shopping list in under 3 seconds, with zero typing for known products. A Raspberry Pi 4 with a Honeywell barcode scanner looks the product up in OpenFoodFacts and pushes it to Bring! via the existing Home Assistant integration. The BTT TFT50 v2.1 touchscreen gives colour-coded feedback on every scan.
 
 ## Subpages
-- [[Hardware]] — components, wiring, network, mounting
-- [[Software]] — daemon, web app, HA integration, autostart
+- [[Projects/🟢 Grocery List Automation/Hardware]] — components, wiring, network, mounting
+- [[Projects/🟢 Grocery List Automation/Software]] — daemon, web app, HA integration, autostart
 
 ## Background
 
@@ -46,6 +46,7 @@ German, Spanish, English — DE → ES → EN fallback when reading product name
 | Phase 3 — On-screen menu (Restart / Close)    | ✅ done      |
 | Phase 3 — Desktop icon to restart scanner     | ✅ done      |
 | Phase 3 — Screen auto-blank after 30 s idle   | ✅ done      |
+| Phase 3 — CPU temp monitor + HA alerts        | 🟦 deploying |
 | Phase 4 — Pre-printed barcodes                | ⬜ planned   |
 | Phase 5 — 3D-printed case (screen + Pi)       | ⬜ planned   |
 | Phase 5 — Camera case (print or source)       | ⬜ planned   |

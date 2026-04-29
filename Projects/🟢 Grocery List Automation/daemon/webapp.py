@@ -1,7 +1,8 @@
 import os
 import json
+import subprocess
 import requests
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -157,6 +158,14 @@ def custom_delete():
         save_custom(data)
         flash(f"Barcode {barcode} deleted.", "ok")
     return redirect(url_for("custom"))
+
+@app.route("/shutdown", methods=["POST"])
+def shutdown():
+    auth = request.headers.get("Authorization", "")
+    if not HA_TOKEN or auth != f"Bearer {HA_TOKEN}":
+        return jsonify({"error": "unauthorized"}), 401
+    subprocess.Popen(["sudo", "/sbin/shutdown", "-h", "now"])
+    return jsonify({"status": "shutting down"}), 202
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)
