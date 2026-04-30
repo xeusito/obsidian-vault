@@ -177,18 +177,16 @@ for (const [label, color] of [["Done","#79b58d"],["In Progress","#8b72be"],["Blo
 
 ---
 
-> [!todo] Grocery List Automation
-> **Due:** 2026-08-31 · **Priority:** Medium
->
-> Raspberry Pi barcode scanner station — scan → OpenFoodFacts → Bring! via HA. LED + LCD + audio feedback.
->
-> **Next:** order LCD + speaker amp → flash Pi OS → write Phase 1 daemon
->
-> → [[🟢 Grocery List Automation/index|Open project]]
-
 ---
 
 ## ✅ Done
+
+> [!success] Grocery List Automation — v1.0
+> **Completed:** 2026-04-30
+>
+> Kitchen-counter Raspberry Pi barcode scanner — scan → OpenFoodFacts → Bring! via HA. Honeywell 7580 + BTT TFT50 touchscreen + Pi camera with Gemini 2.5 Flash AI fallback. CPU thermal monitoring with two-threshold HA alerts. SKADIS-mounted 3D-printed enclosure.
+>
+> → [[✅ Grocery List Automation/index|Open project]]
 
 > [!success] LAFVIN Endless Runner
 > **Completed:** 2026-04-25

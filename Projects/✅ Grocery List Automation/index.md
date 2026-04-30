@@ -1,11 +1,13 @@
 ---
-status: active
+status: completed
+version: "1.0"
 priority: medium
 startDate: 2026-04-24
+completedDate: 2026-04-30
 tags: [project, raspberry-pi, home-assistant, bring, openfoodfacts, barcode]
 ---
 
-# Grocery List Automation
+# Grocery List Automation — v1.0 ✅
 
 A kitchen-counter scan-and-done station that adds items to the Bring! shopping list in under 3 seconds, with zero typing for known products. A Raspberry Pi 4 with a Honeywell barcode scanner looks the product up in OpenFoodFacts and pushes it to Bring! via the existing Home Assistant integration. The BTT TFT50 v2.1 touchscreen gives colour-coded feedback on every scan.
 
@@ -55,17 +57,14 @@ German, Spanish, English — DE → ES → EN fallback when reading product name
 | Phase 3 — Desktop icon to restart scanner     | ✅ done      |
 | Phase 3 — Screen auto-blank after 30 s idle   | ✅ done      |
 | Phase 3 — CPU temp monitor + HA alerts        | ✅ done      |
-| Phase 4 — Pre-printed barcodes                | ⬜ planned   |
-| Phase 5 — 3D-printed case (screen + Pi)       | ⬜ planned   |
-| Phase 5 — Camera case (print or source)       | ⬜ planned   |
-| Phase 5 — Print case(s)                       | ⬜ planned   |
-| Phase 5 — Mount project in kitchen            | ⬜ planned   |
+| Phase 4 — Pre-printed barcodes                | ✅ done      |
+| Phase 5 — 3D-printed case (screen + Pi)       | ✅ done      |
+| Phase 5 — Camera case (print or source)       | ✅ done      |
+| Phase 5 — Print case(s)                       | ✅ done      |
+| Phase 5 — Mount project in kitchen            | ✅ done      |
 
 ## Next Steps
-- [ ] Generate pre-printed barcode sheet for bulk/unlabelled items (coffee, flour, etc.)
-- [ ] Design or find a 3D-printable enclosure for the touchscreen + Pi
-- [ ] Design or find a case for the Pi camera module
-- [ ] Print the case(s) and mount everything in the kitchen
+_None — project shipped at v1.0 on 2026-04-30._
 
 ## Credentials
 - SSH user `pi` password for `192.168.0.162` is stored in **Bitwarden**.
