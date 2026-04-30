@@ -46,7 +46,7 @@ German, Spanish, English — DE → ES → EN fallback when reading product name
 | Phase 3 — On-screen menu (Restart / Close)    | ✅ done      |
 | Phase 3 — Desktop icon to restart scanner     | ✅ done      |
 | Phase 3 — Screen auto-blank after 30 s idle   | ✅ done      |
-| Phase 3 — CPU temp monitor + HA alerts        | 🟦 deploying |
+| Phase 3 — CPU temp monitor + HA alerts        | ✅ done      |
 | Phase 4 — Pre-printed barcodes                | ⬜ planned   |
 | Phase 5 — 3D-printed case (screen + Pi)       | ⬜ planned   |
 | Phase 5 — Camera case (print or source)       | ⬜ planned   |
@@ -72,4 +72,6 @@ German, Spanish, English — DE → ES → EN fallback when reading product name
 - **Gemini 2.5 Flash (AI Studio) over local/featherless LLM** — featherless.ai Basic plan has no vision models within the free tier limit; Proxmox/Ollama dropped. Google AI Studio key used; `google-genai` SDK (not the deprecated `google-generativeai`).
 - **Identification flow on touchscreen, not web UI** — the full multi-photo capture → Gemini → accept/retry flow runs in the pygame state machine. The web UI is for manual editing only.
 - **OpenFoodFacts contribution optional** — product data and front photo are uploaded back to OFF after AI identification. Silently skipped if `OFF_USER`/`OFF_PASSWORD` are absent in `.env`.
+- **Two-threshold thermal protection** — warning at 70 °C (notification + "Shutdown Pi" button) lets me decide; critical at 80 °C triggers the Pi's own `sudo shutdown` without needing HA round-trip. 30 s sample cadence + `for: 1 min` debounce filters out short Gemini-burst spikes.
+- **Re-use HA long-lived token for `/shutdown` auth** — instead of a separate shared secret, the Pi's webapp authenticates the HA `rest_command` against the same long-lived token already in `.env`. One credential to rotate.
 - **Code lives in the vault** — development and documentation kept together in the Obsidian vault; daemon code under `daemon/`.

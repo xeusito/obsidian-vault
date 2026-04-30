@@ -226,10 +226,25 @@ Lets `tempmon.py` and the webapp's `/shutdown` route halt the Pi without a passw
 - Helper: `input_number.grocery_scanner_pi` (0–100, °C, mode `box`).
 - `rest_command.shutdown_grocery_scanner_pi` → `POST http://192.168.0.162:5000/shutdown` with the long-lived token (stored in `secrets.yaml`).
 - Automation **Grocery Scanner Pi — thermal alerts** (`automation.grocery_scanner_pi_thermal_alerts`) — single automation, three triggers dispatched by `trigger.id`:
-  - `warning` — `> 70 °C for 1 min` → mobile notification with a *Shutdown Pi* action button (`action: SHUTDOWN_GROCERY_PI`).
+  - `warning` — `> 70 °C for 1 min` → notification (`notify.mobile_app_oneplus`) with a *Shutdown Pi* action button (`action: SHUTDOWN_GROCERY_PI`).
   - `critical` — `> 80 °C` → informational notification (Pi is already shutting itself down).
   - `shutdown_action` — `mobile_app_notification_action` event → fires `rest_command.shutdown_grocery_scanner_pi` and confirms.
 - All three notifications share `tag: grocery_pi_thermal` so a follow-up replaces the previous one on the OnePlus.
+
+```yaml
+# secrets.yaml  (NOTE the literal "Bearer " prefix — required by webapp.py)
+grocery_scanner_pi_token: "Bearer eyJhbGciOi…<long-lived token>…"
+
+# configuration.yaml
+rest_command:
+  shutdown_grocery_scanner_pi:
+    url: "http://192.168.0.162:5000/shutdown"
+    method: POST
+    headers:
+      Authorization: !secret grocery_scanner_pi_token
+```
+
+> **Gotcha:** the Pi's `/shutdown` route does an exact-string compare (`auth == "Bearer <HA_TOKEN>"`). YAML can't concatenate `"Bearer "` with `!secret` inline, so the secret value itself must include the prefix. After editing `secrets.yaml`, reload via **Dev Tools → YAML → "REST commands"** (the big "Quick Reload" button does **not** include rest_commands).
 
 ---
 
