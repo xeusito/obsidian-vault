@@ -19,6 +19,13 @@
       "complete": false
     },
     {
+      "id": "on-hold",
+      "label": "On Hold",
+      "color": "#e8a83e",
+      "icon": "",
+      "complete": false
+    },
+    {
       "id": "blocked",
       "label": "Blocked",
       "color": "#c47070",
