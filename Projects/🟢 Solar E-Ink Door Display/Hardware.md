@@ -3,7 +3,7 @@ tags: [hardware, bom, wiring]
 ---
 # Hardware
 
-[[Projects/🟡 Solar E-Ink Door Display/index|← Project Overview]]
+[[index|← Project Overview]]
 
 ## Display
 - **Waveshare 7.5" e-ink** — 800×480, black/white
@@ -29,10 +29,11 @@ tags: [hardware, bom, wiring]
 | Battery monitoring | MAX17048 (I2C) | Reports SoC to ESP32 → visible in HA |
 
 ## Microcontroller
-- **Seeed Studio XIAO ESP32C6** — ordered from Kiwi Electronics (SS-113991254)
-- Deep sleep ~10–20µA
+- **ESP32 dev board** — generic Temu board, CP2102 USB-to-UART, dual-core LX6 240MHz
+- Deep sleep ~10µA
 - Wake on timer every 15–30 min → fetch data → refresh display → sleep
-- ⚠️ GPIO assignments below are placeholder (ESP32-S3 reference) — verify against XIAO ESP32C6 pinout before wiring
+- 20+ usable GPIOs — plenty for all peripherals + 4 buttons
+- XIAO ESP32C6 (owned) reserved as candidate for final compact build
 
 ## Alert LED
 - **WS2812B** addressable RGB LED (single or 3-LED mini strip)
@@ -44,40 +45,42 @@ tags: [hardware, bom, wiring]
 
 ## Wiring
 
-### Pin Assignments (ESP32-S3)
+### Pin Assignments (ESP32 — VSPI + hardware I2C)
 
 | GPIO | Function | Connected To |
 |---|---|---|
-| GPIO8 | I2C SDA | MAX17048 SDA |
-| GPIO9 | I2C SCL | MAX17048 SCL |
-| GPIO18 | SPI MOSI | e-ink MOSI |
-| GPIO19 | SPI MISO | e-ink MISO (optional) |
-| GPIO20 | SPI CLK | e-ink CLK |
-| GPIO21 | SPI CS | e-ink CS |
-| GPIO22 | DC | e-ink DC |
-| GPIO23 | RST | e-ink RST |
-| GPIO24 | BUSY | e-ink BUSY |
-| GPIO5 | WS2812B DATA | LED DIN |
+| GPIO21 | I2C SDA | MAX17048 SDA |
+| GPIO22 | I2C SCL | MAX17048 SCL |
+| GPIO23 | SPI MOSI (VSPI) | e-ink MOSI |
+| GPIO19 | SPI MISO (VSPI) | e-ink MISO (optional) |
+| GPIO18 | SPI CLK (VSPI) | e-ink CLK |
+| GPIO5  | SPI CS (VSPI) | e-ink CS |
+| GPIO17 | DC | e-ink DC |
+| GPIO16 | RST | e-ink RST |
+| GPIO4  | BUSY | e-ink BUSY |
+| GPIO25 | WS2812B DATA | LED DIN |
+| GPIO14 | CHRG (optional) | DFR0559 charging status |
 | 3V3 | Power | DFR0559 3V3 out, e-ink VCC, MAX17048 VCC |
 | GND | Ground | All components |
 
-### Button GPIOs (4 buttons — TBD after board confirmed)
+### Button GPIOs
 
-| Button | GPIO | Suggested Function |
+| Button | GPIO | Function |
 |---|---|---|
-| B1 | TBD | Cycle display page / next screen |
-| B2 | TBD | Dismiss / acknowledge alert |
-| B3 | TBD | Force display refresh |
-| B4 | TBD | Spare / user-defined from HA |
+| B1 | GPIO32 | Cycle display page / next screen |
+| B2 | GPIO33 | Dismiss / acknowledge alert |
+| B3 | GPIO26 | Force display refresh |
+| B4 | GPIO27 | Spare / user-defined from HA |
 
 - Internal pull-up enabled on each button GPIO
-- 10–15 free GPIOs remain after SPI + I2C + LED allocations
+- ~10 GPIOs still free after all allocations
 
 ### Wiring Notes
 - 470Ω series resistor on WS2812B data line
 - 100nF decoupling cap across WS2812B VCC/GND, close to LED
-- MISO optional (e-ink is write-only) but recommended for driver compatibility
-- JST-PH 2.0 connector for battery (swappable)
+- MISO optional (e-ink is write-only) but include for driver compatibility
+- Battery connects via DFR0559 KF396 screw terminal (no JST needed on battery side)
+- GPIO14 CHRG: goes LOW when DFR0559 is actively charging — wire to optional status pin
 
 ---
 
@@ -86,7 +89,8 @@ tags: [hardware, bom, wiring]
 | Component                                       | Approx. Cost | Notes |
 | ----------------------------------------------- | ------------ | --- |
 | Waveshare 7.5" e-ink + driver hat               | CHF 67.90    | Bastelgarage SKU 420486 |
-| Seeed Studio XIAO ESP32C6                       | €4.89        | 🟡 ordered — Kiwi Electronics |
+| ESP32 dev board (generic, CP2102)               | —            | ✅ owned — used for prototype |
+| Seeed Studio XIAO ESP32C6                       | €4.89        | ✅ owned — reserved for final build |
 | DFRobot Solar Power Manager DFR0559             | CHF 13.90    | Bastelgarage |
 | Li-Po pouch cell 3.7V 2000mAh (505060)          | ~CHF 8–10    | Temu |
 | MAX17048 fuel gauge breakout                    | ~CHF 4–5     | AliExpress |
@@ -108,7 +112,8 @@ Legend: ✅ owned · 🟡 ordered · ⬜ still needed
 
 | Component                           | Status     | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | ----------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Seeed Studio XIAO ESP32C6           | ✅ owned    | Kiwi Electronics SS-113991254 — €4.89                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ESP32 dev board (generic, CP2102)   | ✅ owned    | Prototype board — Temu generic dual-core                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Seeed Studio XIAO ESP32C6           | ✅ owned    | Kiwi SS-113991254 — reserved for final compact build                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | Reolink 12W 5V solar panel          | ✅ owned    |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | Waveshare 7.5" e-ink + driver hat   | ✅ owned    | Delivered                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | DFRobot DFR0559 solar power manager | ✅ owned    | Delivered                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
