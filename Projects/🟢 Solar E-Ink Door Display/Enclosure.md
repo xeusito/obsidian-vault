@@ -4,7 +4,7 @@ tags: [hardware, 3d-print, enclosure]
 
 # Enclosure
 
-[[index|← Project Overview]]
+[[Projects/🟡 Solar E-Ink Door Display/index|← Project Overview]]
 
 ## Target Dimensions
 - **Total depth: 20–22mm**

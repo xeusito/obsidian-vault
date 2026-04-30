@@ -4,7 +4,7 @@ tags: [software, esphome, home-assistant]
 
 # Software
 
-[[index|← Project Overview]]
+[[Projects/🟡 Solar E-Ink Door Display/index|← Project Overview]]
 
 ## Stack
 - **Firmware:** ESPHome

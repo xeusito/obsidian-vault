@@ -149,18 +149,20 @@ for (const [label, color] of [["Done","#79b58d"],["In Progress","#8b72be"],["Blo
 >
 > → [[🟢 Presence Detection in the Hallway/index|Open project]]
 
+> [!note] Solar E-Ink Door Display
+> **Due:** 2026-07-15 · **Priority:** Medium
+>
+> Solar-powered e-ink display behind the front door — calendar events, trash schedule, HA alerts. Parts received (battery still in transit).
+>
+> **Next:** verify XIAO ESP32C6 pinout → ESPHome config → breadboard prototype → 3D enclosure
+>
+> → [[🟢 Solar E-Ink Door Display/index|Open project]]
+
 ---
 
 ## 🔴 Blocked
 
-> [!warning] Solar E-Ink Door Display
-> **Due:** 2026-07-15 · **Priority:** Medium · **Blocker:** Kiwi Electronics parcel (ESP32C6, MAX17048, cables)
->
-> Solar-powered e-ink display behind the front door — calendar events, trash schedule, HA alerts.
->
-> **Next after parts arrive:** ESPHome config → breadboard prototype → 3D enclosure
->
-> → [[🟡 Solar E-Ink Door Display/index|Open project]]
+*(none)*
 
 ---
 

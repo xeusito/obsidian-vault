@@ -11,8 +11,8 @@ tags: [project, hardware, esp32, home-assistant, esphome, mmwave]
 Detect presence in the hallway and switch either the ceiling (bright) light during the day or a soft glow light at night. Hands-free lighting that adapts to time-of-day — no blind-you-at-3am full brightness.
 
 ## Subpages
-- [[Hardware]] — components, wiring, wiring diagram
-- [[Software]] — ESPHome config, zone setup, lessons learned
+- [[Projects/🟢 Presence Detection in the Hallway/Hardware]] — components, wiring, wiring diagram
+- [[Projects/🟢 Presence Detection in the Hallway/Software]] — ESPHome config, zone setup, lessons learned
 
 ## Resources
 - [[Resources/HLK-LD2450-Instruction-Manual.pdf|HLK-LD2450 Instruction Manual]]

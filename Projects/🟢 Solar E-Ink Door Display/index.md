@@ -1,9 +1,8 @@
 ---
-status: blocked
+status: in-progress
 priority: medium
 startDate: 2026-04-21
 dueDate: 2026-07-15
-on_hold_reason: Waiting for Kiwi Electronics parcel (ESP32C6, MAX17048, buttons, resistors, JST cables)
 tags: [project, hardware, esp32, home-assistant, esphome]
 ---
 
@@ -20,8 +19,8 @@ A solar-powered e-ink information display mounted behind the front door. Shows c
 
 | Item                   | State     |
 | ---------------------- | --------- |
-| ESP32 board confirmed  | 🟡 ordered — Seeed XIAO ESP32C6 |
-| Parts ordered          | ✅ complete |
+| ESP32 board confirmed  | ✅ Seeed XIAO ESP32C6 — received |
+| Parts ordered          | ✅ complete — battery still in transit |
 | ESPHome config started | ⬜ pending |
 | Prototype wired        | ⬜ pending |
 | Enclosure designed     | ⬜ pending |
@@ -36,6 +35,7 @@ A solar-powered e-ink information display mounted behind the front door. Shows c
 - [ ] Wire prototype on breadboard
 - [ ] Flash ESPHome and test HA integration
 - [ ] Print enclosure and final assembly
+- [ ] Add a task to suggest umbrella of the weather seems to be bad for the day
 
 ## Key Decisions
 - **No touch display** — LCD touch draws 200–500mA, kills solar viability; e-ink + physical buttons chosen

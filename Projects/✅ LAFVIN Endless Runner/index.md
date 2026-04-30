@@ -11,8 +11,8 @@ tags: [project, hardware, esp32-c6, arduino, game, lafvin]
 One-button Chrome-dino-style endless runner for the **LAFVIN ESP32-C6-LCD-1.47** kit. Press BOOT to jump, dodge cacti, beat the high score. First project on the new board — exercises the LCD, RGB LED, microSD, and BOOT button all at once.
 
 ## Subpages
-- [[Hardware]] — board, pinout, peripherals used
-- [[Software]] — architecture, libraries, tuning knobs
+- [[Projects/✅ LAFVIN Endless Runner/Hardware]] — board, pinout, peripherals used
+- [[Projects/✅ LAFVIN Endless Runner/Software]] — architecture, libraries, tuning knobs
 
 ## Source
 - [[code/runner_c6.ino|runner_c6.ino]] — main sketch
