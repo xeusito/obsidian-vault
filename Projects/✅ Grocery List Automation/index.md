@@ -9,11 +9,11 @@ tags: [project, raspberry-pi, home-assistant, bring, openfoodfacts, barcode]
 
 # Grocery List Automation — v1.0 ✅
 
-A kitchen-counter scan-and-done station that adds items to the Bring! shopping list in under 3 seconds, with zero typing for known products. A Raspberry Pi 4 with a Honeywell barcode scanner looks the product up in OpenFoodFacts and pushes it to Bring! via the existing Home Assistant integration. The BTT TFT50 v2.1 touchscreen gives colour-coded feedback on every scan.
+A kitchen-counter scan-and-done station that adds items to the Bring! shopping list in under 3 seconds, with zero typing for known products. A Raspberry Pi 4 with a Honeywell barcode scanner looks the product up in OpenFoodFacts and pushes it to Bring! via the existing Home Assistant integration. Unknown items can be identified on-device via the Pi camera + Gemini 2.5 Flash AI vision. The BTT TFT50 v2.1 touchscreen gives colour-coded feedback on every scan. Mounted on an IKEA SKADIS pegboard inside a custom 3D-printed enclosure.
 
 ## Subpages
-- [[Projects/🟢 Grocery List Automation/Hardware]] — components, wiring, network, mounting
-- [[Projects/🟢 Grocery List Automation/Software]] — daemon, web app, HA integration, autostart
+- [[Hardware]] — components, wiring, network, mounting
+- [[Software]] — daemon, web app, HA integration, autostart, thermal monitoring
 
 ## Files
 - **3D-printable enclosure** — `Files/Enclosure/`
@@ -22,6 +22,9 @@ A kitchen-counter scan-and-done station that adds items to the Bring! shopping l
   - [[Files/Enclosure/Rear panel.stl|Rear panel.stl]] — back cover with vents
   - [[Files/Enclosure/connectors-plate.stl|connectors-plate.stl]] — IKEA SKADIS mounting plate
   - [[Files/Enclosure/connectors-pegs.stl|connectors-pegs.stl]] — SKADIS pegs that clip the plate to the pegboard
+- **Mounting photos** — `Files/Mounting/`
+  - ![[Files/Mounting/Wall_mount.jpg]]
+  - ![[Files/Mounting/scanner_placement.jpg]]
 
 ## Background
 
@@ -71,7 +74,7 @@ _None — project shipped at v1.0 on 2026-04-30._
 
 ## Key Decisions
 - **Sync via HA `todo.shopping` entity** — Bring! integration already loaded in HA. One `todo.add_item` call, brand + quantity in the `description` field (maps to Bring!'s "Quantity, description…" field in the Android app).
-- **Display only — no LED or buzzer in MVP** — BTT TFT50 fullscreen colour flash handles all feedback. Buzzer deferred (wrong cable type); LED strip deferred.
+- **Display-only feedback** — BTT TFT50 full-screen colour flash + status text handles every scan outcome. The originally planned buzzer and RGB LED strip were dropped — the display alone is more informative and visible from across the kitchen.
 - **LXDE autostart over systemd user service** — `graphical-session.target` not triggered by LXDE on Pi OS; autostart fires reliably after X11 is ready.
 - **Static IP (192.168.0.162) over mDNS** — `.local` hostname unreliable on this network.
 - **HA button card over iframe** — HA runs on HTTPS; browsers block HTTP iframes (mixed content). Button card opens the web UI in a new tab.

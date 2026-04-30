@@ -199,7 +199,7 @@ tap_action:
 
 ## Thermal monitoring (`tempmon.py` + systemd timer)
 
-The Pi will be mounted directly behind the BTT TFT50 inside the SKADIS enclosure with no aluminium passive case, only stick-on heatsinks. We monitor temps and have a hard safety cut-off.
+The Pi sits directly behind the BTT TFT50 inside the SKADIS-mounted enclosure with no aluminium passive case, only stick-on heatsinks. The thermal monitor gives visibility plus a hard safety cut-off.
 
 ### `tempmon.py`
 Reads `/sys/class/thermal/thermal_zone0/temp` (millidegrees → °C, one decimal), POSTs to HA's REST API to update `input_number.grocery_scanner_pi`, and runs `sudo /sbin/shutdown -h now` if temp ≥ 80 °C. One-shot script, fired by a systemd timer; no long-running daemon.
@@ -248,9 +248,9 @@ rest_command:
 
 ---
 
-## Phase 4 — Additional inputs (planned)
-1. **Pre-printed barcodes** — generate Code-128 label sheet for bulk/unlabelled items. Entries managed via the `/custom` web UI. Zero new hardware.
-2. **NFC reader** (PN532) — deferred; only if pre-printed barcodes prove insufficient.
+## Phase 4 — Additional inputs
+1. **Pre-printed barcodes** — Code-128 label sheet for bulk/unlabelled items (coffee jar, flour tin, etc.). Entries managed via the `/custom` web UI; resolved on first scan and stored in `custom_barcodes.json` so the scanner recognises them instantly.
+2. **NFC reader** (PN532) — never installed; pre-printed barcodes covered all the unlabelled items in practice.
 
 ---
 
