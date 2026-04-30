@@ -6,6 +6,25 @@ Tagged in git as `grocery-list-automation-v<version>` on the [obsidian-vault](ht
 
 ---
 
+## [1.1.1] — 2026-05-01
+
+Polish pass on the v1.1 list and manual-entry views.
+
+### Added
+- **Long-press to delete suggestions** — long-pressing any chip on the manual-entry screen (recent *or* autocomplete) enters a delete mode where each chip gains a red **×** badge in its corner. Tap × to remove that name from `manual_items.jsonl` (refreshes the chip row and stays in delete mode for batch pruning). Tap the chip body, the keyboard, an input field, or anywhere else to exit delete mode (the chip-body tap also fills the input field, so one tap accomplishes both).
+- **Item descriptions on the shopping-list view** — each row now shows the description below the name (smaller, non-bold, light-grey). Applies to barcode-scanned items (brand • quantity from OFF) as well as manually-typed entries with a description.
+- **Dynamic font sizing** in the list view — names step down through 32 → 28 → 24 → 20 px and descriptions through 22 → 20 → 18 → 16 px before falling back to "…" truncation, so most real-world product names and descriptions render in full.
+- **Long-press detection in pygame** — main-loop event handling now tracks `MOUSEBUTTONDOWN` timestamp and dispatches on `MOUSEBUTTONUP` with a `duration` argument. Threshold `LONG_PRESS_S = 0.5`. Backward-compatible: `handle_touch(pos, duration=0.0)` so non-chip screens are unaffected.
+
+### Changed
+- **List page size 5 → 4** — taller rows (64 → 78 px) accommodate two lines of text. Pagination footer logic unchanged.
+- **`_font()` / `_fit_font()` helpers** — small font cache keyed by (size, bold) plus a "fit text within max-width by trying sizes descending" utility, used by the list view and reusable elsewhere.
+
+### Fixed
+- **`chip_delete_mode` reset on screen transitions** — every path that leaves `manual_input` (close → list, successful add, dup-add, idle-return timeout) now clears the flag so a stale delete-mode never leaks across sessions.
+
+---
+
 ## [1.1] — 2026-04-30
 
 Quality-of-life pass driven entirely by real-life kitchen use.

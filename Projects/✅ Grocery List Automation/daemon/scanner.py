@@ -28,7 +28,7 @@ FRONT_PHOTO    = "/tmp/grocery_front.jpg"
 BACK_PHOTO     = "/tmp/grocery_back.jpg"
 BLANK_TIMEOUT       = 30  # seconds of inactivity before display off
 IDLE_RETURN_TIMEOUT = 90  # seconds of inactivity before transient screens return to idle
-LIST_PAGE_SIZE      = 5   # shopping-list rows per page in the list view
+LIST_PAGE_SIZE      = 4   # shopping-list rows per page in the list view (taller rows fit description)
 
 # Screens that should auto-return to idle after IDLE_RETURN_TIMEOUT of inactivity.
 # Excludes: idle (no-op), lookup/processing/list_loading (mid-network), and the
@@ -39,6 +39,8 @@ IDLE_RETURN_FROM = {"list_view", "manual_input", "menu", "webui_hint"}
 
 _last_activity: float = 0.0
 _screen_blanked: bool = False
+_press_start_ts: float = 0.0   # MOUSEBUTTONDOWN timestamp, for long-press detection
+LONG_PRESS_S    = 0.5          # threshold to count a tap as a long-press
 
 KEYMAP = {
     2:"1",3:"2",4:"3",5:"4",6:"5",7:"6",8:"7",9:"8",10:"9",11:"0",
@@ -95,6 +97,7 @@ app_state = {
     "kb_shift":         False,
     "recents":          [],         # [{"name":..., "desc":...}]
     "suggest":          [],         # autocomplete chips for input_name
+    "chip_delete_mode": False,      # long-press a chip → on; tapping × deletes
 }
 
 # ── Virtual keyboard layout ───────────────────────────────────────────────────
@@ -328,24 +331,46 @@ def _render_list_view(items, page, error):
     else:
         start = page * LIST_PAGE_SIZE
         page_items = items[start:start + LIST_PAGE_SIZE]
-        y0, row_h, gap = 75, 64, 6
+        y0, row_h, gap = 75, 78, 6
         x_color = (140, 50, 50)
+
+        # Available width for text (row width minus left padding minus X button area)
+        text_max_w = W - 40 - 20 - 95
 
         for i, it in enumerate(page_items):
             y = y0 + i * (row_h + gap)
             name = (it.get("summary") or "").strip()
+            desc = (it.get("description") or "").strip()
             uid  = it.get("uid") or name
 
             pygame.draw.rect(screen, (50, 50, 50), pygame.Rect(20, y, W - 40, row_h), border_radius=6)
 
+            # Name — bold, dynamic size 32 → 28 → 24 → 20
+            name_font = _fit_font(name, text_max_w, [32, 28, 24, 20], bold=True)
             display_name = name
-            max_w = W - 60 - 90
-            while font_button.size(display_name)[0] > max_w and len(display_name) > 4:
+            # Last-resort truncation if even the smallest font won't fit
+            while name_font.size(display_name)[0] > text_max_w and len(display_name) > 4:
                 display_name = display_name[:-4] + "…"
-            txt = font_button.render(display_name, True, WHITE)
-            screen.blit(txt, (40, y + (row_h - txt.get_height()) // 2))
+            name_surf = name_font.render(display_name, True, WHITE)
 
-            x_btn = Button("X", pygame.Rect(W - 95, y + 7, 75, row_h - 14), x_color, ("delete", uid, name))
+            if desc:
+                # Description — smaller, non-bold, dynamic 22 → 20 → 18 → 16
+                desc_font = _fit_font(desc, text_max_w, [22, 20, 18, 16], bold=False)
+                display_desc = desc
+                while desc_font.size(display_desc)[0] > text_max_w and len(display_desc) > 4:
+                    display_desc = display_desc[:-4] + "…"
+                desc_surf = desc_font.render(display_desc, True, LIGHT)
+
+                # Stack: name above, desc below, both vertically centred together within the row
+                total_h = name_surf.get_height() + 2 + desc_surf.get_height()
+                top_y = y + (row_h - total_h) // 2
+                screen.blit(name_surf, (40, top_y))
+                screen.blit(desc_surf, (40, top_y + name_surf.get_height() + 2))
+            else:
+                # Single-line: vertically centre the name in the row
+                screen.blit(name_surf, (40, y + (row_h - name_surf.get_height()) // 2))
+
+            x_btn = Button("X", pygame.Rect(W - 95, y + 14, 75, row_h - 28), x_color, ("delete", uid, name))
             active_buttons.append(x_btn)
             _draw_button(x_btn)
 
@@ -393,6 +418,45 @@ def _load_manual_history(limit=8):
     except Exception:
         return []
     return out
+
+_font_cache: dict = {}
+
+def _font(size, bold=False):
+    key = (size, bold)
+    if key not in _font_cache:
+        _font_cache[key] = pygame.font.SysFont("dejavu sans", size, bold=bold)
+    return _font_cache[key]
+
+def _fit_font(text, max_w, sizes, bold=False):
+    """Return the largest font from `sizes` (descending) that renders `text` within `max_w` px.
+    Falls back to the smallest size if none fit (caller can still truncate)."""
+    for size in sizes:
+        f = _font(size, bold)
+        if f.size(text)[0] <= max_w:
+            return f
+    return _font(sizes[-1], bold)
+
+def _delete_manual_entry(name):
+    """Remove all entries whose name (case-insensitive) matches `name` from manual_items.jsonl."""
+    if not os.path.exists(MANUAL_LOG):
+        return
+    nl = name.lower()
+    try:
+        with open(MANUAL_LOG, encoding="utf-8") as f:
+            lines = f.readlines()
+        kept = []
+        for line in lines:
+            try:
+                e = json.loads(line)
+                if (e.get("name") or "").strip().lower() == nl:
+                    continue
+            except Exception:
+                pass
+            kept.append(line)
+        with open(MANUAL_LOG, "w", encoding="utf-8") as f:
+            f.writelines(kept)
+    except Exception:
+        pass
 
 def _save_manual(name, desc):
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -501,6 +565,7 @@ def _render_manual_input():
     kb_shift     = get_state("kb_shift")
     recents      = get_state("recents") or []
     suggest      = get_state("suggest") or []
+    delete_mode  = get_state("chip_delete_mode") or False
 
     # Header
     _center("Add item", font_medium, WHITE, 22)
@@ -571,11 +636,29 @@ def _render_manual_input():
             pygame.draw.rect(screen, (50, 80, 110), rect, border_radius=chips_h // 2)
             t = font_tiny.render(label, True, WHITE)
             screen.blit(t, t.get_rect(center=rect.center))
+
+            # In delete mode: × badge in the top-right corner. Append BEFORE the chip
+            # body so it wins on hit-test for overlapping pixels.
+            if delete_mode:
+                badge_r = 14
+                cx, cy = rect.right - 4, rect.top + 4
+                badge_rect = pygame.Rect(cx - badge_r, cy - badge_r, badge_r * 2, badge_r * 2)
+                active_buttons.append(Button("×", badge_rect, (200, 50, 50), ("chip_del", c["name"])))
+                pygame.draw.circle(screen, (200, 50, 50), (cx, cy), badge_r)
+                pygame.draw.circle(screen, WHITE, (cx, cy), badge_r, width=1)
+                xt = font_tiny.render("×", True, WHITE)
+                screen.blit(xt, xt.get_rect(center=(cx, cy)))
+
             active_buttons.append(Button(label, rect, (50, 80, 110), ("chip", c["name"], c.get("desc", ""))))
             x += rect_w + gap
     elif not name:
         s = font_tiny.render("(no recent items yet)", True, DIM)
         screen.blit(s, s.get_rect(center=(W // 2, chips_y + chips_h // 2)))
+
+    # Subtle hint when in delete mode — sits under the chip row
+    if delete_mode:
+        hint = font_tiny.render("Tap × to delete · tap chip body or anywhere else to exit", True, (210, 130, 130))
+        screen.blit(hint, hint.get_rect(midtop=(W // 2, chips_y + chips_h + 4)))
 
     # Keyboard
     for btn in _build_keyboard(kb_layer, kb_shift):
@@ -737,7 +820,7 @@ def _do_manual_add(name, desc):
                 set_state(screen="list_view", items=fresh, items_page=0, items_error="",
                           input_name="", input_desc="", desc_open=False,
                           active_field="name", kb_shift=False, kb_layer="letters",
-                          suggest=[])
+                          suggest=[], chip_delete_mode=False)
             return
 
     # POST to HA todo.add_item
@@ -769,7 +852,7 @@ def _do_manual_add(name, desc):
         set_state(screen="list_view", items=fresh, items_page=0, items_error="",
                   input_name="", input_desc="", desc_open=False,
                   active_field="name", kb_shift=False, kb_layer="letters",
-                  suggest=[])
+                  suggest=[], chip_delete_mode=False)
 
 def _webui_then_idle():
     set_state(screen="webui_hint")
@@ -779,11 +862,12 @@ def _webui_then_idle():
 
 # ── Touch handler ─────────────────────────────────────────────────────────────
 
-def handle_touch(pos):
+def handle_touch(pos, duration=0.0):
     if _screen_blanked:
         _wake_screen()
         return  # consume the tap; don't trigger buttons
     _mark_activity()
+    long_press = duration >= LONG_PRESS_S
     s, barcode, result = get_state("screen", "barcode", "result")
 
     if s == "idle":
@@ -817,7 +901,8 @@ def handle_touch(pos):
             set_state(screen="manual_input",
                       input_name="", input_desc="", desc_open=False,
                       active_field="name", kb_shift=False, kb_layer="letters",
-                      recents=_load_manual_history(), suggest=[])
+                      recents=_load_manual_history(), suggest=[],
+                      chip_delete_mode=False)
         elif action == "prev":
             page = get_state("items_page") or 0
             if page > 0:
@@ -836,6 +921,25 @@ def handle_touch(pos):
         if not isinstance(action, tuple):
             return
         tag = action[0]
+        delete_mode = get_state("chip_delete_mode") or False
+
+        # Long-press a chip → enter delete mode (only if not already in it)
+        if tag == "chip" and long_press and not delete_mode:
+            set_state(chip_delete_mode=True)
+            return
+
+        # × badge → delete that entry, refresh chips, stay in delete mode
+        if tag == "chip_del":
+            _, cname = action
+            _delete_manual_entry(cname)
+            new_recents = _load_manual_history()
+            new_suggest = _suggest(get_state("input_name") or "", new_recents)
+            set_state(recents=new_recents, suggest=new_suggest)
+            return
+
+        # Any other tap exits delete mode (and still performs its action)
+        if delete_mode:
+            set_state(chip_delete_mode=False)
 
         if tag == "close":
             _thread(_load_shopping_list)
@@ -1140,7 +1244,10 @@ if __name__ == "__main__":
                     pygame.quit()
                     exit()
                 elif event.type == pygame.MOUSEBUTTONDOWN:
-                    handle_touch(event.pos)
+                    _press_start_ts = time.time()
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    duration = time.time() - _press_start_ts
+                    handle_touch(event.pos, duration)
 
             if needs_render.is_set():
                 needs_render.clear()
@@ -1158,7 +1265,7 @@ if __name__ == "__main__":
                               items=[], items_page=0, items_error="",
                               input_name="", input_desc="", desc_open=False,
                               active_field="name", kb_shift=False, kb_layer="letters",
-                              suggest=[])
+                              suggest=[], chip_delete_mode=False)
 
             time.sleep(0.05)
     except KeyboardInterrupt:

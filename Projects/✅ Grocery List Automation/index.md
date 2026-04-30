@@ -1,12 +1,12 @@
 ---
 status: completed
-version: "1.1"
+version: "1.1.1"
 priority: medium
 startDate: 2026-04-24
 completedDate: 2026-04-30
 tags: [project, raspberry-pi, home-assistant, bring, openfoodfacts, barcode]
 ---
-# Grocery List Automation — v1.1 ✅
+# Grocery List Automation — v1.1.1 ✅
 
 A kitchen-counter scan-and-done station that adds items to the Bring! shopping list in under 3 seconds, with zero typing for known products. A Raspberry Pi 4 with a Honeywell barcode scanner looks the product up in OpenFoodFacts and pushes it to Bring! via the existing Home Assistant integration. Unknown items can be identified on-device via the Pi camera + Gemini 2.5 Flash AI vision. The BTT TFT50 v2.1 touchscreen gives colour-coded feedback on every scan. Mounted on an IKEA SKADIS pegboard inside a custom 3D-printed enclosure.
 
@@ -71,6 +71,8 @@ German, Spanish, English — DE → ES → EN fallback when reading product name
 | v1.1 — Duplicate-add detection                | ✅ done      |
 | v1.1 — Manual entry on touchscreen (keyboard, recents, autocomplete, optional desc) | ✅ done |
 | v1.1 — Inactivity → return to idle (90 s)     | ✅ done      |
+| v1.1.1 — Long-press to delete suggestions     | ✅ done      |
+| v1.1.1 — Description on shopping-list rows + dynamic font sizing | ✅ done |
 
 ## Next Steps
 _None — project shipped at v1.0 on 2026-04-30._

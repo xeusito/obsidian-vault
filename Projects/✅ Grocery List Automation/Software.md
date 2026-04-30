@@ -80,7 +80,7 @@ State machine running on the pygame main thread. Touch events (`MOUSEBUTTONDOWN`
 | `webui_hint`       | Shows IP address + "Back to main menu" button         |
 | `menu`             | Shopping List / Restart / Close / Cancel buttons      |
 | `list_loading`     | Dark — "Loading list…" or "Removing…" — no buttons    |
-| `list_view`        | Dark — paginated Bring! items, ✕ per row, **+** in top-right opens `manual_input`, Prev/Back/Next footer |
+| `list_view`        | Dark — paginated Bring! items (4 per page; name + description with dynamic font sizing), ✕ per row, **+** in top-right opens `manual_input`, Prev/Back/Next footer |
 | `manual_input`     | Dark — header with × close + name field + optional description field + chip row (recents *or* autocomplete) + 3-layer virtual keyboard |
 
 ### Scanner gating
@@ -115,6 +115,11 @@ Tapping `+ desc` in the input area expands a second input row below the name. Fi
 
 Dup matching ignores description — only the name is compared.
 
+#### Long-press to delete a suggestion
+Long-pressing any chip (≥ 0.5 s, threshold `LONG_PRESS_S`) toggles **delete mode**. Each chip then renders a red **×** badge in its top-right corner. Tapping a × deletes every entry matching that name (case-insensitive) from `manual_items.jsonl` and refreshes the recents/autocomplete; the screen stays in delete mode so you can prune several in a row. Any other tap (chip body — also fills the field, keyboard key, input field focus, +desc toggle, header close) exits delete mode.
+
+Long-press detection is implemented at the main-loop level: `MOUSEBUTTONDOWN` records a timestamp; `MOUSEBUTTONUP` computes `duration` and passes it to `handle_touch(pos, duration)`. All non-chip screens ignore the `duration` argument so behaviour elsewhere is unchanged.
+
 #### Recents data file (`data/manual_items.jsonl`)
 Append-only log; one JSON line per successful manual add:
 ```
@@ -122,6 +127,11 @@ Append-only log; one JSON line per successful manual add:
 {"name": "Deodorant", "desc": "Nelson", "ts": "2026-04-30T18:10:08.117Z"}
 ```
 `_load_manual_history()` reads this file in reverse (most-recent first), dedupes by lower-case name (latest entry's `desc` wins), and returns up to 8 dicts. `_suggest(prefix, history)` is a case-insensitive prefix-match returning the top 3.
+
+### Shopping list rendering
+The list view shows up to **4 rows per page** (78 px tall), each rendering both the item name (bold) and — if present — its description below in a smaller non-bold light-grey font. Names walk down 32 → 28 → 24 → 20 px and descriptions 22 → 20 → 18 → 16 px via `_fit_font(text, max_w, sizes, bold)` — the largest size that fits the available width is picked; if none fit, the smallest is used and the text is truncated with "…". Single-line items (no description) are vertically centred in their row. Fonts are cached by `(size, bold)` in `_font_cache` so repeated re-renders are cheap.
+
+Both barcode-scanned items (where the description carries `brand • quantity` from OpenFoodFacts) and manually-added items with a description are rendered the same way.
 
 ### Inactivity → return-to-idle
 The display backlight already cuts at 30 s of inactivity (`BLANK_TIMEOUT`, via `vcgencmd display_power 0`). On top of that, after `IDLE_RETURN_TIMEOUT = 90 s` of inactivity, the daemon resets transient screens (`list_view`, `manual_input`, `menu`, `webui_hint`) back to `idle` and clears their state (typed text, current page, etc.). This follows the kiosk/POS convention rather than the phone "wake to last screen" pattern — see the *Key Decisions* in `index.md`.
