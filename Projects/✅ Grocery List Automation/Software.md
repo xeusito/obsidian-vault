@@ -80,10 +80,53 @@ State machine running on the pygame main thread. Touch events (`MOUSEBUTTONDOWN`
 | `webui_hint`       | Shows IP address + "Back to main menu" button         |
 | `menu`             | Shopping List / Restart / Close / Cancel buttons      |
 | `list_loading`     | Dark — "Loading list…" or "Removing…" — no buttons    |
-| `list_view`        | Dark — paginated Bring! items, ✕ per row, Prev/Back/Next footer |
+| `list_view`        | Dark — paginated Bring! items, ✕ per row, **+** in top-right opens `manual_input`, Prev/Back/Next footer |
+| `manual_input`     | Dark — header with × close + name field + optional description field + chip row (recents *or* autocomplete) + 3-layer virtual keyboard |
 
 ### Scanner gating
-`handle_barcode()` is a no-op unless `screen` is `idle`, `known_ok`, `known_err`, `already_in_list`, or `menu`. This prevents the barcode scanner from interrupting the touchscreen identification flow or the shopping-list browse view.
+`handle_barcode()` is a no-op unless `screen` is `idle`, `known_ok`, `known_err`, `already_in_list`, or `menu`. This prevents the barcode scanner from interrupting the touchscreen identification flow, the shopping-list browse view, or the on-device manual entry keyboard.
+
+### Manual entry on the touchscreen (`manual_input`)
+Tapping the **+** button in the top-right of the shopping-list view opens an on-device entry screen with a virtual QWERTY keyboard. Most items typed manually are repeats (milk, bread…) so the screen has three layers of effort:
+
+1. **Recents row** — when the name field is empty, the chip row shows the last 8 unique names from `data/manual_items.jsonl` (most-recent first). One tap fills the name (and description, if the recent entry had one) → tap **Add** to submit.
+2. **Autocomplete** — once you start typing, the same chip row swaps to up to 3 prefix-matches from history. `to` → `tomatoes`, `toilet paper`, …
+3. **Full keyboard** — fallback for genuinely new items.
+
+Keyboard layout is built every render by `_build_keyboard(layer, shift)` and has three layers, toggled by the `123` / `äöü` / `abc` keys on the bottom row:
+
+| Layer     | Row 1                       | Row 2                    | Row 3 (between Shift & ⌫) |
+|-----------|-----------------------------|--------------------------|----------------------------|
+| `letters` | q w e r t y u i o p         | a s d f g h j k l        | z x c v b n m              |
+| `numbers` | 1 2 3 4 5 6 7 8 9 0         | - / : ; ( ) € & @        | ' , . ? ! - "              |
+| `accents` | ä ö ü ß á é í ó ú ñ         | Ä Ö Ü À É Í Ó Ú Ñ        | ç ¿ ¡ - ' , .              |
+
+Bottom row is fixed across layers: layer-1 toggle, layer-2 toggle, space, **Add**. **Shift** is sticky-one-shot — pressing it uppercases the next single alpha keypress, then auto-clears.
+
+#### Description field
+Tapping `+ desc` in the input area expands a second input row below the name. Field focus follows taps; `active_field` (`name` | `desc`) governs which field receives keystrokes. Empty descriptions are dropped from the HA payload entirely. Recents that carry a non-empty description auto-expand the desc row when their chip is tapped, so what's about to be submitted is always visible.
+
+#### Submit & dup-check
+**Add** runs `_do_manual_add(name, desc)` in a daemon thread:
+1. Strip; skip if name is empty.
+2. Fetch the current Bring! list via `todo.get_items?return_response`. Case-insensitive equality on `summary` → if present, show `already_in_list` (yellow, 2 s), then return to a freshly-fetched list view.
+3. Otherwise `POST todo.add_item` with `{entity_id, item: name, description?: desc}`. On success, append `{name, desc, ts}` to `manual_items.jsonl`, flash `confirmed` for 1.5 s, return to a refreshed list view.
+4. On HA error, drop back to `manual_input` with the user's typed text intact so they can retry.
+
+Dup matching ignores description — only the name is compared.
+
+#### Recents data file (`data/manual_items.jsonl`)
+Append-only log; one JSON line per successful manual add:
+```
+{"name": "Bananas",   "desc": "",       "ts": "2026-04-30T14:22:11.302Z"}
+{"name": "Deodorant", "desc": "Nelson", "ts": "2026-04-30T18:10:08.117Z"}
+```
+`_load_manual_history()` reads this file in reverse (most-recent first), dedupes by lower-case name (latest entry's `desc` wins), and returns up to 8 dicts. `_suggest(prefix, history)` is a case-insensitive prefix-match returning the top 3.
+
+### Inactivity → return-to-idle
+The display backlight already cuts at 30 s of inactivity (`BLANK_TIMEOUT`, via `vcgencmd display_power 0`). On top of that, after `IDLE_RETURN_TIMEOUT = 90 s` of inactivity, the daemon resets transient screens (`list_view`, `manual_input`, `menu`, `webui_hint`) back to `idle` and clears their state (typed text, current page, etc.). This follows the kiosk/POS convention rather than the phone "wake to last screen" pattern — see the *Key Decisions* in `index.md`.
+
+The check sits in the main loop next to the blank-screen check; it's self-limiting because once the screen flips to `idle` the condition no longer matches `IDLE_RETURN_FROM`. Mid-flow screens (Gemini photo capture, scan-result) are deliberately excluded — bouncing out mid-photo would be jarring.
 
 ### Duplicate-add detection
 `add_to_bring()` returns one of `"added"`, `"duplicate"`, or `"error"`. Before any `todo.add_item` call, the daemon fetches the active Bring! list via `todo.get_items?return_response` and case-insensitively compares the trimmed product name against each `summary`. If it already exists the scanner shows `already_in_list` (yellow, 3 s) instead of adding a second copy. If the list fetch fails the add proceeds anyway — better to risk a duplicate than block the user when HA is momentarily unreachable.

@@ -22,11 +22,20 @@ LANG_PRIORITY  = os.getenv("LANG_PRIORITY", "de,es,en").split(",")
 DATA_DIR       = os.getenv("DATA_DIR", "./data")
 UNKNOWN_LOG    = os.path.join(DATA_DIR, "unknown.jsonl")
 CUSTOM_MAP     = os.path.join(DATA_DIR, "custom_barcodes.json")
+MANUAL_LOG     = os.path.join(DATA_DIR, "manual_items.jsonl")
 
 FRONT_PHOTO    = "/tmp/grocery_front.jpg"
 BACK_PHOTO     = "/tmp/grocery_back.jpg"
-BLANK_TIMEOUT  = 30  # seconds of inactivity before display off
-LIST_PAGE_SIZE = 5   # shopping-list rows per page in the list view
+BLANK_TIMEOUT       = 30  # seconds of inactivity before display off
+IDLE_RETURN_TIMEOUT = 90  # seconds of inactivity before transient screens return to idle
+LIST_PAGE_SIZE      = 5   # shopping-list rows per page in the list view
+
+# Screens that should auto-return to idle after IDLE_RETURN_TIMEOUT of inactivity.
+# Excludes: idle (no-op), lookup/processing/list_loading (mid-network), and the
+# confirmed/known_ok/known_err/already_in_list screens that already auto-return
+# from their own threads. Mid-Gemini-flow screens (front/back/result) are also
+# left alone — bouncing out mid-photo would be jarring.
+IDLE_RETURN_FROM = {"list_view", "manual_input", "menu", "webui_hint"}
 
 _last_activity: float = 0.0
 _screen_blanked: bool = False
@@ -78,6 +87,32 @@ app_state = {
     "items":            [],
     "items_page":       0,
     "items_error":      "",
+    "input_name":       "",
+    "input_desc":       "",
+    "desc_open":        False,
+    "active_field":     "name",     # name | desc
+    "kb_layer":         "letters",  # letters | numbers | accents
+    "kb_shift":         False,
+    "recents":          [],         # [{"name":..., "desc":...}]
+    "suggest":          [],         # autocomplete chips for input_name
+}
+
+# ── Virtual keyboard layout ───────────────────────────────────────────────────
+
+KB_KEY_H       = 56
+KB_GAP         = 4
+KB_BOTTOM_PAD  = 8
+
+LAYERS = {
+    "letters":  [["q","w","e","r","t","y","u","i","o","p"],
+                 ["a","s","d","f","g","h","j","k","l"],
+                 [None,"z","x","c","v","b","n","m",None]],   # row3 inner letters
+    "numbers":  [["1","2","3","4","5","6","7","8","9","0"],
+                 ["-","/",":",";","(",")","€","&","@"],
+                 [None,"'",",",".","?","!","-","\"",None]],
+    "accents":  [["ä","ö","ü","ß","á","é","í","ó","ú","ñ"],
+                 ["Ä","Ö","Ü","À","É","Í","Ó","Ú","Ñ"],
+                 [None,"ç","¿","¡","-","'",",",".",None]],
 }
 state_lock   = threading.Lock()
 needs_render = threading.Event()
@@ -283,6 +318,11 @@ def _render_list_view(items, page, error):
     if error:
         _center(error, font_tiny, (255, 150, 150), 60)
 
+    # "+" manual-entry shortcut, top right
+    add_btn = Button("+", pygame.Rect(W - 70, 10, 56, 40), C["green"], "manual_add")
+    active_buttons.append(add_btn)
+    _draw_button(add_btn)
+
     if n == 0:
         _center("List is empty", font_small, DIM, H // 2 - 20)
     else:
@@ -330,6 +370,223 @@ def _render_list_view(items, page, error):
 
     pygame.display.flip()
 
+def _load_manual_history(limit=8):
+    """Read manual_items.jsonl, dedupe by name (latest desc wins), return up to `limit` dicts
+    in most-recent-first order."""
+    if not os.path.exists(MANUAL_LOG):
+        return []
+    out, seen = [], set()
+    try:
+        with open(MANUAL_LOG, encoding="utf-8") as f:
+            entries = [json.loads(line) for line in f if line.strip()]
+        for e in reversed(entries):
+            n = (e.get("name") or "").strip()
+            if not n:
+                continue
+            key = n.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append({"name": n, "desc": (e.get("desc") or "").strip()})
+            if len(out) >= limit:
+                break
+    except Exception:
+        return []
+    return out
+
+def _save_manual(name, desc):
+    os.makedirs(DATA_DIR, exist_ok=True)
+    try:
+        with open(MANUAL_LOG, "a", encoding="utf-8") as f:
+            f.write(json.dumps({
+                "name": name,
+                "desc": desc,
+                "ts":   datetime.datetime.now(datetime.timezone.utc).isoformat()
+            }, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
+def _suggest(prefix, history, limit=3):
+    if not prefix:
+        return []
+    p = prefix.lower()
+    return [h for h in history if h["name"].lower().startswith(p)][:limit]
+
+def _build_keyboard(kb_layer, kb_shift):
+    """Return list of Button objects for current keyboard layer."""
+    rows    = LAYERS[kb_layer]
+    btns    = []
+    key_w   = 76
+    side_w  = 100   # shift / backspace / layer toggles
+    add_w   = 180
+
+    kb_total_h = 4 * KB_KEY_H + 3 * KB_GAP
+    kb_top     = H - kb_total_h - KB_BOTTOM_PAD
+
+    # Row 1 — 10 keys
+    keys  = rows[0]
+    row_w = 10 * key_w + 9 * KB_GAP
+    x0    = (W - row_w) // 2
+    y     = kb_top
+    for i, ch in enumerate(keys):
+        ch_eff = ch.upper() if (kb_shift and ch.isalpha()) else ch
+        rect   = pygame.Rect(x0 + i * (key_w + KB_GAP), y, key_w, KB_KEY_H)
+        btns.append(Button(ch_eff, rect, (50, 50, 50), ("key", ch_eff)))
+
+    # Row 2 — 9 keys (offset half-key for stagger)
+    keys  = rows[1]
+    row_w = 9 * key_w + 8 * KB_GAP
+    x0    = (W - row_w) // 2
+    y     = kb_top + (KB_KEY_H + KB_GAP)
+    for i, ch in enumerate(keys):
+        ch_eff = ch.upper() if (kb_shift and ch.isalpha()) else ch
+        rect   = pygame.Rect(x0 + i * (key_w + KB_GAP), y, key_w, KB_KEY_H)
+        btns.append(Button(ch_eff, rect, (50, 50, 50), ("key", ch_eff)))
+
+    # Row 3 — shift/abc + 7 inner keys + backspace
+    inner = [k for k in rows[2] if k is not None]
+    row_w = side_w + KB_GAP + len(inner) * key_w + (len(inner) - 1) * KB_GAP + KB_GAP + side_w
+    x0    = (W - row_w) // 2
+    y     = kb_top + 2 * (KB_KEY_H + KB_GAP)
+
+    if kb_layer == "letters":
+        sh_label, sh_action, sh_color = "Shift", ("kb", "shift"), (C["blue"] if kb_shift else (60, 60, 70))
+    else:
+        sh_label, sh_action, sh_color = "abc", ("kb_layer", "letters"), (60, 60, 70)
+    btns.append(Button(sh_label, pygame.Rect(x0, y, side_w, KB_KEY_H), sh_color, sh_action))
+
+    x = x0 + side_w + KB_GAP
+    for ch in inner:
+        ch_eff = ch.upper() if (kb_shift and ch.isalpha()) else ch
+        btns.append(Button(ch_eff, pygame.Rect(x, y, key_w, KB_KEY_H), (50, 50, 50), ("key", ch_eff)))
+        x += key_w + KB_GAP
+    btns.append(Button("⌫", pygame.Rect(x, y, side_w, KB_KEY_H), (60, 60, 70), ("kb", "back")))
+
+    # Row 4 — layer toggles + space + Add
+    y = kb_top + 3 * (KB_KEY_H + KB_GAP)
+    if kb_layer == "letters":
+        t1_label, t1_action = "123",  ("kb_layer", "numbers")
+        t2_label, t2_action = "äöü",  ("kb_layer", "accents")
+    elif kb_layer == "numbers":
+        t1_label, t1_action = "abc",  ("kb_layer", "letters")
+        t2_label, t2_action = "äöü",  ("kb_layer", "accents")
+    else:  # accents
+        t1_label, t1_action = "abc",  ("kb_layer", "letters")
+        t2_label, t2_action = "123",  ("kb_layer", "numbers")
+
+    fixed_total = side_w + side_w + add_w + 3 * KB_GAP
+    space_w     = (W - 28) - fixed_total
+    margin      = (W - (fixed_total + space_w)) // 2
+    x           = margin
+
+    btns.append(Button(t1_label, pygame.Rect(x, y, side_w, KB_KEY_H), (60, 60, 70), t1_action))
+    x += side_w + KB_GAP
+    btns.append(Button(t2_label, pygame.Rect(x, y, side_w, KB_KEY_H), (60, 60, 70), t2_action))
+    x += side_w + KB_GAP
+    btns.append(Button("space", pygame.Rect(x, y, space_w, KB_KEY_H), (50, 50, 50), ("key", " ")))
+    x += space_w + KB_GAP
+    btns.append(Button("Add", pygame.Rect(x, y, add_w, KB_KEY_H), C["green"], ("submit",)))
+
+    return btns
+
+def _render_manual_input():
+    active_buttons.clear()
+    screen.fill(C["dark"])
+
+    name         = get_state("input_name")
+    desc         = get_state("input_desc")
+    desc_open    = get_state("desc_open")
+    active_field = get_state("active_field")
+    kb_layer     = get_state("kb_layer")
+    kb_shift     = get_state("kb_shift")
+    recents      = get_state("recents") or []
+    suggest      = get_state("suggest") or []
+
+    # Header
+    _center("Add item", font_medium, WHITE, 22)
+    close_btn = Button("X", pygame.Rect(W - 60, 6, 50, 38), (90, 60, 60), ("close",))
+    active_buttons.append(close_btn)
+    _draw_button(close_btn)
+
+    # Name input
+    name_y = 50
+    name_rect = pygame.Rect(20, name_y, W - 40, 50)
+    name_active = active_field == "name"
+    border = (110, 160, 220) if name_active else (70, 75, 90)
+    pygame.draw.rect(screen, (40, 45, 55), name_rect, border_radius=8)
+    pygame.draw.rect(screen, border, name_rect, width=2, border_radius=8)
+    if not name:
+        ph = font_small.render("Item name", True, DIM)
+        screen.blit(ph, (name_rect.x + 14, name_rect.y + (name_rect.h - ph.get_height()) // 2))
+    else:
+        text = name + ("|" if name_active else "")
+        nm = font_small.render(text, True, WHITE)
+        screen.blit(nm, (name_rect.x + 14, name_rect.y + (name_rect.h - nm.get_height()) // 2))
+    active_buttons.append(Button("name", name_rect, (40, 45, 55), ("focus", "name")))
+
+    # Description input (when open)
+    if desc_open:
+        desc_y = name_y + 54
+        desc_rect = pygame.Rect(20, desc_y, W - 40, 50)
+        desc_active = active_field == "desc"
+        border = (110, 160, 220) if desc_active else (70, 75, 90)
+        pygame.draw.rect(screen, (40, 45, 55), desc_rect, border_radius=8)
+        pygame.draw.rect(screen, border, desc_rect, width=2, border_radius=8)
+        if not desc:
+            ph = font_small.render("Description (optional)", True, DIM)
+            screen.blit(ph, (desc_rect.x + 14, desc_rect.y + (desc_rect.h - ph.get_height()) // 2))
+        else:
+            text = desc + ("|" if desc_active else "")
+            dt = font_small.render(text, True, WHITE)
+            screen.blit(dt, (desc_rect.x + 14, desc_rect.y + (desc_rect.h - dt.get_height()) // 2))
+        active_buttons.append(Button("desc", desc_rect, (40, 45, 55), ("focus", "desc")))
+        toggle_y = desc_y + 54
+    else:
+        toggle_y = name_y + 54
+
+    # +/- desc toggle (small text button, right aligned)
+    tog_label = "− desc" if desc_open else "+ desc"
+    tog_rect = pygame.Rect(W - 130, toggle_y, 110, 26)
+    txt = font_tiny.render(tog_label, True, (140, 200, 255))
+    screen.blit(txt, txt.get_rect(center=tog_rect.center))
+    active_buttons.append(Button(tog_label, tog_rect, C["dark"], ("toggle_desc",)))
+
+    # Chip row — recents (when name empty) or autocomplete suggestions
+    chips_y = toggle_y + 32
+    chips_h = 40
+    chips = suggest if name else recents
+
+    if chips:
+        x = 16
+        gap = 6
+        for c in chips:
+            label = c["name"]
+            if c.get("desc"):
+                label += f" ({c['desc']})"
+            label_w = font_tiny.size(label)[0]
+            rect_w = label_w + 24
+            if x + rect_w > W - 16:
+                break
+            rect = pygame.Rect(x, chips_y, rect_w, chips_h)
+            pygame.draw.rect(screen, (50, 80, 110), rect, border_radius=chips_h // 2)
+            t = font_tiny.render(label, True, WHITE)
+            screen.blit(t, t.get_rect(center=rect.center))
+            active_buttons.append(Button(label, rect, (50, 80, 110), ("chip", c["name"], c.get("desc", ""))))
+            x += rect_w + gap
+    elif not name:
+        s = font_tiny.render("(no recent items yet)", True, DIM)
+        screen.blit(s, s.get_rect(center=(W // 2, chips_y + chips_h // 2)))
+
+    # Keyboard
+    for btn in _build_keyboard(kb_layer, kb_shift):
+        pygame.draw.rect(screen, btn.color, btn.rect, border_radius=6)
+        font = font_button if len(btn.label) <= 5 else font_tiny
+        txt = font.render(btn.label, True, WHITE)
+        screen.blit(txt, txt.get_rect(center=btn.rect.center))
+        active_buttons.append(btn)
+
+    pygame.display.flip()
+
 def render_current():
     with state_lock:
         s            = app_state["screen"]
@@ -359,6 +616,7 @@ def render_current():
     elif s == "menu":             _render_menu()
     elif s == "list_loading":     _render_processing(p_label)
     elif s == "list_view":        _render_list_view(items, items_page, items_error)
+    elif s == "manual_input":     _render_manual_input()
 
 # ── Display power management ──────────────────────────────────────────────────
 
@@ -462,6 +720,57 @@ def _delete_item(uid, name):
     page = min(get_state("items_page") or 0, n_pages - 1)
     set_state(screen="list_view", items=items, items_page=page, items_error="")
 
+def _do_manual_add(name, desc):
+    """Add a manually-typed item to Bring!. Dup-checks first, logs to history on success,
+    flashes a confirmation, then returns to the shopping list."""
+    set_state(processing_label="Adding…", screen="list_loading")
+
+    # Dup check
+    items = fetch_shopping_items()
+    if items is not None:
+        nl = name.lower()
+        if any((it.get("summary") or "").strip().lower() == nl for it in items):
+            set_state(screen="already_in_list", product_name=name, product_detail=desc)
+            time.sleep(2)
+            if get_state("screen") == "already_in_list":
+                fresh = fetch_shopping_items() or []
+                set_state(screen="list_view", items=fresh, items_page=0, items_error="",
+                          input_name="", input_desc="", desc_open=False,
+                          active_field="name", kb_shift=False, kb_layer="letters",
+                          suggest=[])
+            return
+
+    # POST to HA todo.add_item
+    payload = {"entity_id": HA_TODO_ENTITY, "item": name}
+    if desc:
+        payload["description"] = desc
+    try:
+        r = requests.post(
+            f"{HA_URL}/api/services/todo/add_item",
+            headers={"Authorization": f"Bearer {HA_TOKEN}", "Content-Type": "application/json"},
+            json=payload, timeout=5,
+        )
+        ok = r.status_code in (200, 201)
+    except Exception:
+        ok = False
+
+    if not ok:
+        # Re-show the manual_input screen so the user can retry without losing what they typed
+        set_state(screen="manual_input")
+        return
+
+    _save_manual(name, desc)
+
+    # Brief green confirmation, then back to a refreshed list view
+    set_state(screen="confirmed", product_name=name, product_detail=desc)
+    time.sleep(1.5)
+    if get_state("screen") == "confirmed":
+        fresh = fetch_shopping_items() or []
+        set_state(screen="list_view", items=fresh, items_page=0, items_error="",
+                  input_name="", input_desc="", desc_open=False,
+                  active_field="name", kb_shift=False, kb_layer="letters",
+                  suggest=[])
+
 def _webui_then_idle():
     set_state(screen="webui_hint")
     time.sleep(5)
@@ -504,6 +813,11 @@ def handle_touch(pos):
     elif s == "list_view":
         if action == "back":
             set_state(screen="menu")
+        elif action == "manual_add":
+            set_state(screen="manual_input",
+                      input_name="", input_desc="", desc_open=False,
+                      active_field="name", kb_shift=False, kb_layer="letters",
+                      recents=_load_manual_history(), suggest=[])
         elif action == "prev":
             page = get_state("items_page") or 0
             if page > 0:
@@ -517,6 +831,65 @@ def handle_touch(pos):
         elif isinstance(action, tuple) and action and action[0] == "delete":
             _, uid, name = action
             _thread(_delete_item, uid, name)
+
+    elif s == "manual_input":
+        if not isinstance(action, tuple):
+            return
+        tag = action[0]
+
+        if tag == "close":
+            _thread(_load_shopping_list)
+
+        elif tag == "toggle_desc":
+            now_open = not get_state("desc_open")
+            set_state(desc_open=now_open,
+                      active_field="desc" if now_open else "name")
+
+        elif tag == "focus":
+            set_state(active_field=action[1])
+
+        elif tag == "key":
+            ch = action[1]
+            # Apply sticky shift: uppercase the char and clear shift
+            if get_state("kb_shift") and len(ch) == 1 and ch.isalpha():
+                ch = ch.upper()
+                set_state(kb_shift=False)
+            af = get_state("active_field")
+            if af == "name":
+                new_name = get_state("input_name") + ch
+                set_state(input_name=new_name,
+                          suggest=_suggest(new_name, get_state("recents") or []))
+            else:
+                set_state(input_desc=get_state("input_desc") + ch)
+
+        elif tag == "kb":
+            sub = action[1]
+            if sub == "shift":
+                set_state(kb_shift=not get_state("kb_shift"))
+            elif sub == "back":
+                af = get_state("active_field")
+                if af == "name":
+                    new_name = get_state("input_name")[:-1]
+                    set_state(input_name=new_name,
+                              suggest=_suggest(new_name, get_state("recents") or []))
+                else:
+                    set_state(input_desc=get_state("input_desc")[:-1])
+
+        elif tag == "kb_layer":
+            set_state(kb_layer=action[1], kb_shift=False)
+
+        elif tag == "submit":
+            name = (get_state("input_name") or "").strip()
+            desc = (get_state("input_desc") or "").strip()
+            if name:
+                _thread(_do_manual_add, name, desc)
+
+        elif tag == "chip":
+            _, cname, cdesc = action
+            set_state(input_name=cname, input_desc=cdesc,
+                      desc_open=bool(cdesc),
+                      active_field="name",
+                      suggest=[])
 
     elif s == "choice":
         if action == "auto":
@@ -775,6 +1148,17 @@ if __name__ == "__main__":
 
             if not _screen_blanked and time.time() - _last_activity > BLANK_TIMEOUT:
                 _blank_screen()
+
+            # Return transient screens to idle after a longer inactivity window.
+            # Self-limiting: once on idle, the condition no longer matches.
+            if time.time() - _last_activity > IDLE_RETURN_TIMEOUT:
+                if get_state("screen") in IDLE_RETURN_FROM:
+                    set_state(screen="idle", barcode="", result=None, error="",
+                              product_name="", product_detail="",
+                              items=[], items_page=0, items_error="",
+                              input_name="", input_desc="", desc_open=False,
+                              active_field="name", kb_shift=False, kb_layer="letters",
+                              suggest=[])
 
             time.sleep(0.05)
     except KeyboardInterrupt:

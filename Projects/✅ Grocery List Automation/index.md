@@ -1,13 +1,13 @@
 ---
 status: completed
-version: "1.0"
+version: "1.1"
 priority: medium
 startDate: 2026-04-24
 completedDate: 2026-04-30
 tags: [project, raspberry-pi, home-assistant, bring, openfoodfacts, barcode]
 ---
 
-# Grocery List Automation — v1.0 ✅
+# Grocery List Automation — v1.1 ✅
 
 A kitchen-counter scan-and-done station that adds items to the Bring! shopping list in under 3 seconds, with zero typing for known products. A Raspberry Pi 4 with a Honeywell barcode scanner looks the product up in OpenFoodFacts and pushes it to Bring! via the existing Home Assistant integration. Unknown items can be identified on-device via the Pi camera + Gemini 2.5 Flash AI vision. The BTT TFT50 v2.1 touchscreen gives colour-coded feedback on every scan. Mounted on an IKEA SKADIS pegboard inside a custom 3D-printed enclosure.
 
@@ -67,6 +67,10 @@ German, Spanish, English — DE → ES → EN fallback when reading product name
 | Phase 5 — Camera case (print or source)       | ✅ done      |
 | Phase 5 — Print case(s)                       | ✅ done      |
 | Phase 5 — Mount project in kitchen            | ✅ done      |
+| v1.1 — Shopping list view + delete on device  | ✅ done      |
+| v1.1 — Duplicate-add detection                | ✅ done      |
+| v1.1 — Manual entry on touchscreen (keyboard, recents, autocomplete, optional desc) | ✅ done |
+| v1.1 — Inactivity → return to idle (90 s)     | ✅ done      |
 
 ## Next Steps
 _None — project shipped at v1.0 on 2026-04-30._
@@ -86,4 +90,6 @@ _None — project shipped at v1.0 on 2026-04-30._
 - **OpenFoodFacts contribution optional** — product data and front photo are uploaded back to OFF after AI identification. Silently skipped if `OFF_USER`/`OFF_PASSWORD` are absent in `.env`.
 - **Two-threshold thermal protection** — warning at 70 °C (notification + "Shutdown Pi" button) lets me decide; critical at 80 °C triggers the Pi's own `sudo shutdown` without needing HA round-trip. 30 s sample cadence + `for: 1 min` debounce filters out short Gemini-burst spikes.
 - **Re-use HA long-lived token for `/shutdown` auth** — instead of a separate shared secret, the Pi's webapp authenticates the HA `rest_command` against the same long-lived token already in `.env`. One credential to rotate.
+- **Recents + autocomplete > full keyboard alone** — manual entry is dominated by repeats (milk, bread, eggs). The chip row covers 1-tap re-adds and 2-tap autocomplete; the QWERTY keyboard is the fallback for genuinely new items. Storage is a single append-only `manual_items.jsonl`.
+- **Kiosk-pattern return-to-idle, not phone-pattern resume** — after 90 s of inactivity on transient screens (`list_view`, `manual_input`, `menu`, `webui_hint`) the device resets to `idle`. POS/kiosk convention beats phone "wake to last screen" here because the device is shared (anyone in the kitchen) and the calm idle state gives clearer "ready to scan" feedback than a stale list view. The blank timer (30 s) still kicks in first, so active users reading a list aren't punished — only walked-away sessions reset.
 - **Code lives in the vault** — development and documentation kept together in the Obsidian vault; daemon code under `daemon/`.
