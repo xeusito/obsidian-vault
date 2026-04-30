@@ -8,7 +8,7 @@ type: "task"
 status: "done"
 priority: "medium"
 start: "2026-04-26"
-due: "2026-05-03"
+due: "2026-04-26"
 progress: 0
 assignees: []
 tags: []

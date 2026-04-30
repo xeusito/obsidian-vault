@@ -7,8 +7,8 @@ title: "Create grocery-scanner.service systemd unit and end-to-end test"
 type: "task"
 status: "done"
 priority: "medium"
-start: "2026-07-18"
-due: "2026-08-03"
+start: "2026-04-28"
+due: "2026-04-28"
 progress: 0
 assignees: []
 tags: []

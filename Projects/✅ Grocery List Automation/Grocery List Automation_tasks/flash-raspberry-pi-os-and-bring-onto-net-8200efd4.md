@@ -7,8 +7,8 @@ title: "Flash Raspberry Pi OS and bring onto network"
 type: "task"
 status: "done"
 priority: "medium"
-start: "2026-05-03"
-due: "2026-05-10"
+start: "2026-04-26"
+due: "2026-04-27"
 progress: 0
 assignees: []
 tags: []

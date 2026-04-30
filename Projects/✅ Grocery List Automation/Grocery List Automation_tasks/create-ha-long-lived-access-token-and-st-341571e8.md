@@ -7,8 +7,8 @@ title: "Create HA long-lived access token and store in .env"
 type: "task"
 status: "done"
 priority: "medium"
-start: "2026-05-11"
-due: "2026-05-16"
+start: "2026-04-27"
+due: "2026-04-27"
 progress: 0
 assignees: []
 tags: []

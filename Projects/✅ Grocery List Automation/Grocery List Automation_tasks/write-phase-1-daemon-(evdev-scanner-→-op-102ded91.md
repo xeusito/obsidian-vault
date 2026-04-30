@@ -7,8 +7,8 @@ title: "Write Phase 1 daemon (evdev scanner → OpenFoodFacts → HA todo.add_it
 type: "task"
 status: "done"
 priority: "high"
-start: "2026-05-17"
-due: "2026-07-17"
+start: "2026-04-27"
+due: "2026-04-28"
 progress: 0
 assignees: []
 tags: []

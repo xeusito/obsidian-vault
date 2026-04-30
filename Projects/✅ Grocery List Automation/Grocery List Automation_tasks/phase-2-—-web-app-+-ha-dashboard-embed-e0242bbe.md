@@ -7,8 +7,8 @@ title: "Phase 2 — web app + HA dashboard embed"
 type: "task"
 status: "done"
 priority: "low"
-start: "2026-08-04"
-due: "2026-09-04"
+start: "2026-04-28"
+due: "2026-04-29"
 progress: 0
 assignees: []
 tags: []
