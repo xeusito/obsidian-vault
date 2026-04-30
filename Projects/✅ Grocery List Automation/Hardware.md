@@ -17,7 +17,9 @@ CSI ribbon cable to the Pi's camera connector. Captured via `rpicam-jpeg`.
 USB-A port directly. Read via `evdev` from `/dev/input/by-id/usb-Honeywell_Imaging___Mobility_7580_18362B50A8-event-kbd` (path pinned by-id, exclusively grabbed by the daemon).
 
 ## Mounting
-Mounted on the kitchen IKEA SKADIS pegboard — see [[Files/Mounting/Wall_mount.jpg|wall mount photo]] and [[Files/Mounting/scanner_placement.jpg|scanner placement photo]]. The Pi 4 + TFT50 + camera live inside a custom 3D-printed enclosure (see `Files/Enclosure/`) that clips onto SKADIS via the printed pegs and connector plate. The Honeywell scanner sits in its stand within easy reach of where groceries are unpacked.
+Mounted on the kitchen IKEA SKADIS pegboard — see [[Files/Mounting/Wall_mount.jpg|wall mount photo]] and [[Files/Mounting/scanner_placement.jpg|scanner placement photo]]. The Pi 4 + TFT50 + camera live inside a 3D-printed enclosure (see `Files/Enclosure/`) that clips onto SKADIS via the printed pegs and connector plate. The Honeywell scanner sits in its stand within easy reach of where groceries are unpacked.
+
+The enclosure design is by **Ioannis Giannakas** — *Raspberry Pi 3B with BTT TFT50 screen enclosure (KL-style)*, [printables.com/model/810131](https://www.printables.com/model/810131-raspberry-pi-3b-with-btt-tft50-screen-enclosure-kl). Originally for the Pi 3B; fits the Pi 4 unchanged.
 
 ## Network
 Static IP: **192.168.0.162/24** — Gateway: 192.168.0.1, DNS: 192.168.0.1. Set via `nmtui` on the `netplan-wlan0-MoreVilla` Wi-Fi connection.

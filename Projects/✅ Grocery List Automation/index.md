@@ -6,7 +6,6 @@ startDate: 2026-04-24
 completedDate: 2026-04-30
 tags: [project, raspberry-pi, home-assistant, bring, openfoodfacts, barcode]
 ---
-
 # Grocery List Automation — v1.1 ✅
 
 A kitchen-counter scan-and-done station that adds items to the Bring! shopping list in under 3 seconds, with zero typing for known products. A Raspberry Pi 4 with a Honeywell barcode scanner looks the product up in OpenFoodFacts and pushes it to Bring! via the existing Home Assistant integration. Unknown items can be identified on-device via the Pi camera + Gemini 2.5 Flash AI vision. The BTT TFT50 v2.1 touchscreen gives colour-coded feedback on every scan. Mounted on an IKEA SKADIS pegboard inside a custom 3D-printed enclosure.
@@ -17,7 +16,7 @@ A kitchen-counter scan-and-done station that adds items to the Bring! shopping l
 - [[CHANGELOG]] — release notes (v1.0, v1.1, …)
 
 ## Files
-- **3D-printable enclosure** — `Files/Enclosure/`
+- **3D-printable enclosure** — `Files/Enclosure/` · designed by **Ioannis Giannakas** ([Printables: Raspberry Pi 3B with BTT TFT50 screen enclosure (KL-style)](https://www.printables.com/model/810131-raspberry-pi-3b-with-btt-tft50-screen-enclosure-kl)). Original is for the Pi 3B; fits the Pi 4 with no modification.
   - [[Files/Enclosure/Grocery Scanner enclosure.3mf|Grocery Scanner enclosure.3mf]] — Bambu Studio project (slicer-ready)
   - [[Files/Enclosure/Body.stl|Body.stl]] — main shell housing the BTT TFT50 + Pi 4
   - [[Files/Enclosure/Rear panel.stl|Rear panel.stl]] — back cover with vents

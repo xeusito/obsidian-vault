@@ -63,7 +63,7 @@ Initial production release. Kitchen-counter scan-and-done station fully assemble
 - Pre-printed barcodes for unlabelled items (coffee jar, flour tin) — managed via the `/custom` web UI.
 
 ### Added — Phase 5 (Enclosure & mounting)
-- Custom 3D-printed enclosure (Bambu Studio `.3mf` + 4 STLs: body, vented rear panel, SKADIS connector plate, SKADIS pegs).
+- 3D-printed enclosure (Bambu Studio `.3mf` + 4 STLs: body, vented rear panel, SKADIS connector plate, SKADIS pegs). Design by **Ioannis Giannakas** — [*Raspberry Pi 3B with BTT TFT50 screen enclosure (KL-style)*](https://www.printables.com/model/810131-raspberry-pi-3b-with-btt-tft50-screen-enclosure-kl) on Printables. Pi 3B design, fits the Pi 4 unchanged.
 - Camera positioned for ~45° downward shots of products held below the screen.
 - Mounted on the IKEA SKADIS pegboard in the kitchen.
 
