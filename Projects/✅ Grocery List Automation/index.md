@@ -14,6 +14,7 @@ A kitchen-counter scan-and-done station that adds items to the Bring! shopping l
 ## Subpages
 - [[Hardware]] — components, wiring, network, mounting
 - [[Software]] — daemon, web app, HA integration, autostart, thermal monitoring
+- [[CHANGELOG]] — release notes (v1.0, v1.1, …)
 
 ## Files
 - **3D-printable enclosure** — `Files/Enclosure/`
