@@ -25,6 +25,8 @@ A kitchen-counter scan-and-done station that adds items to the Bring! shopping l
 - **Mounting photos** — `Files/Mounting/`
   - ![[Files/Mounting/Wall_mount.jpg]]
   - ![[Files/Mounting/scanner_placement.jpg]]
+- **Scanner reference** — `Files/Scanner/`
+  - [[Files/Scanner/sps-ppr-7580-qs.pdf|Honeywell 7580 Quick Start Guide]] — vendor PDF; contains the configuration barcodes used to set USB-PC-Keyboard mode and Switzerland keyboard layout
 
 ## Background
 

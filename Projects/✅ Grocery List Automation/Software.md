@@ -187,7 +187,7 @@ tap_action:
 ---
 
 ## Scanner setup notes
-- **Mode:** USB PC Keyboard, Switzerland keyboard layout — programmed by scanning barcodes from the Honeywell 7580 quick-start guide (`sps-ppr-7580-qs.pdf`):
+- **Mode:** USB PC Keyboard, Switzerland keyboard layout — programmed by scanning barcodes from the [[Files/Scanner/sps-ppr-7580-qs.pdf|Honeywell 7580 quick-start guide]]:
   1. USB PC Keyboard (p.7)
   2. Program Keyboard Country (p.8)
   3. 6 — Switzerland (p.13)
@@ -259,4 +259,4 @@ rest_command:
 - [HA `todo` domain services](https://www.home-assistant.io/integrations/todo/)
 - [HA Bring! integration](https://www.home-assistant.io/integrations/bring/)
 - [python-evdev](https://python-evdev.readthedocs.io/)
-- [Honeywell 7580 Quick Start Guide](sps-ppr-7580-qs.pdf)
+- [[Files/Scanner/sps-ppr-7580-qs.pdf|Honeywell 7580 Quick Start Guide]] — local PDF (vendor manual; configuration barcodes for keyboard mode + country layout)
