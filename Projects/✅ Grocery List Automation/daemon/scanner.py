@@ -23,9 +23,10 @@ DATA_DIR       = os.getenv("DATA_DIR", "./data")
 UNKNOWN_LOG    = os.path.join(DATA_DIR, "unknown.jsonl")
 CUSTOM_MAP     = os.path.join(DATA_DIR, "custom_barcodes.json")
 
-FRONT_PHOTO   = "/tmp/grocery_front.jpg"
-BACK_PHOTO    = "/tmp/grocery_back.jpg"
-BLANK_TIMEOUT = 30  # seconds of inactivity before display off
+FRONT_PHOTO    = "/tmp/grocery_front.jpg"
+BACK_PHOTO     = "/tmp/grocery_back.jpg"
+BLANK_TIMEOUT  = 30  # seconds of inactivity before display off
+LIST_PAGE_SIZE = 5   # shopping-list rows per page in the list view
 
 _last_activity: float = 0.0
 _screen_blanked: bool = False
@@ -74,6 +75,9 @@ app_state = {
     "processing_label": "Identifying…",
     "product_name":     "",
     "product_detail":   "",
+    "items":            [],
+    "items_page":       0,
+    "items_error":      "",
 }
 state_lock   = threading.Lock()
 needs_render = threading.Event()
@@ -244,40 +248,117 @@ def _render_webui_hint():
 def _render_menu():
     active_buttons.clear()
     screen.fill(C["dark"])
-    _center("Scanner Menu", font_medium, WHITE, 80)
+    _center("Scanner Menu", font_medium, WHITE, 50)
     btns = [
-        Button("Restart",  pygame.Rect( 40, 190, 330, 90), C["blue"], "restart"),
-        Button("Close",    pygame.Rect(410, 190, 330, 90), C["red"],  "close"),
-        Button("Cancel",   pygame.Rect(W // 2 - 120, 330, 240, 70), C["grey"], "cancel"),
+        Button("Shopping List", pygame.Rect( 40, 130, W - 80, 80),       C["blue"],  "shopping_list"),
+        Button("Restart",       pygame.Rect( 40, 230, 330, 80),          C["blue"],  "restart"),
+        Button("Close",         pygame.Rect(410, 230, 330, 80),          C["red"],   "close"),
+        Button("Cancel",        pygame.Rect(W // 2 - 120, 340, 240, 60), C["grey"],  "cancel"),
     ]
     active_buttons.extend(btns)
     for b in btns:
         _draw_button(b)
     pygame.display.flip()
 
+def _render_already_in_list(name, detail):
+    active_buttons.clear()
+    screen.fill(C["yellow"])
+    _center("Already in shopping list", font_medium, WHITE, H // 2 - 80, max_w=W - 40)
+    _center(name, font_large, WHITE, H // 2, max_w=W - 40)
+    if detail:
+        _center(detail, font_small, (240, 230, 200), H // 2 + 70, max_w=W - 40)
+    pygame.display.flip()
+
+def _render_list_view(items, page, error):
+    active_buttons.clear()
+    screen.fill(C["dark"])
+
+    n = len(items)
+    n_pages = max(1, (n + LIST_PAGE_SIZE - 1) // LIST_PAGE_SIZE)
+    page = max(0, min(page, n_pages - 1))
+
+    # Header
+    title = f"Shopping List · {n} item{'s' if n != 1 else ''}" if n else "Shopping List"
+    _center(title, font_medium, WHITE, 28)
+    if error:
+        _center(error, font_tiny, (255, 150, 150), 60)
+
+    if n == 0:
+        _center("List is empty", font_small, DIM, H // 2 - 20)
+    else:
+        start = page * LIST_PAGE_SIZE
+        page_items = items[start:start + LIST_PAGE_SIZE]
+        y0, row_h, gap = 75, 64, 6
+        x_color = (140, 50, 50)
+
+        for i, it in enumerate(page_items):
+            y = y0 + i * (row_h + gap)
+            name = (it.get("summary") or "").strip()
+            uid  = it.get("uid") or name
+
+            pygame.draw.rect(screen, (50, 50, 50), pygame.Rect(20, y, W - 40, row_h), border_radius=6)
+
+            display_name = name
+            max_w = W - 60 - 90
+            while font_button.size(display_name)[0] > max_w and len(display_name) > 4:
+                display_name = display_name[:-4] + "…"
+            txt = font_button.render(display_name, True, WHITE)
+            screen.blit(txt, (40, y + (row_h - txt.get_height()) // 2))
+
+            x_btn = Button("X", pygame.Rect(W - 95, y + 7, 75, row_h - 14), x_color, ("delete", uid, name))
+            active_buttons.append(x_btn)
+            _draw_button(x_btn)
+
+    # Footer
+    fy = H - 55
+    btn_h = 48
+    if n_pages > 1:
+        prev_color = C["grey"] if page > 0 else (40, 40, 40)
+        next_color = C["grey"] if page < n_pages - 1 else (40, 40, 40)
+        prev_btn = Button("Prev", pygame.Rect(20,        fy, 130, btn_h), prev_color, "prev")
+        next_btn = Button("Next", pygame.Rect(W - 150,   fy, 130, btn_h), next_color, "next")
+        active_buttons.extend([prev_btn, next_btn])
+        _draw_button(prev_btn)
+        _draw_button(next_btn)
+
+    back_btn = Button("Back", pygame.Rect(W // 2 - 90, fy, 180, btn_h), C["grey"], "back")
+    active_buttons.append(back_btn)
+    _draw_button(back_btn)
+
+    if n_pages > 1:
+        _center(f"{page + 1}/{n_pages}", font_tiny, DIM, fy - 12)
+
+    pygame.display.flip()
+
 def render_current():
     with state_lock:
-        s       = app_state["screen"]
-        barcode = app_state["barcode"]
-        result  = app_state["result"]
-        error   = app_state["error"]
-        p_name  = app_state["product_name"]
-        p_det   = app_state["product_detail"]
-        p_label = app_state["processing_label"]
+        s            = app_state["screen"]
+        barcode      = app_state["barcode"]
+        result       = app_state["result"]
+        error        = app_state["error"]
+        p_name       = app_state["product_name"]
+        p_det        = app_state["product_detail"]
+        p_label      = app_state["processing_label"]
+        items        = app_state["items"]
+        items_page   = app_state["items_page"]
+        items_error  = app_state["items_error"]
 
-    if   s == "idle":           _render_idle()
-    elif s == "lookup":         _render_simple("idle", "Looking up…", barcode)
-    elif s == "known_ok":       _render_simple("green",  p_name, p_det)
-    elif s == "known_err":      _render_simple("yellow", p_name, p_det + " — not added")
-    elif s == "unknown_screen": _render_unknown(barcode)
-    elif s == "choice":         _render_choice(barcode)
-    elif s == "front_prompt":   _render_front_prompt(error)
-    elif s == "back_prompt":    _render_back_prompt(error)
-    elif s == "processing":     _render_processing(p_label)
-    elif s == "result_screen":  _render_result(result, error)
-    elif s == "confirmed":      _render_simple("green", "Added to Bring!", p_name)
-    elif s == "webui_hint":     _render_webui_hint()
-    elif s == "menu":           _render_menu()
+    if   s == "idle":             _render_idle()
+    elif s == "lookup":           _render_simple("idle", "Looking up…", barcode)
+    elif s == "known_ok":         _render_simple("green",  p_name, p_det)
+    elif s == "known_err":        _render_simple("yellow", p_name, p_det + " — not added")
+    elif s == "already_in_list":  _render_already_in_list(p_name, p_det)
+    elif s == "unknown_screen":   _render_unknown(barcode)
+    elif s == "choice":           _render_choice(barcode)
+    elif s == "front_prompt":     _render_front_prompt(error)
+    elif s == "back_prompt":      _render_back_prompt(error)
+    elif s == "processing":       _render_processing(p_label)
+    elif s == "result_screen":    _render_result(result, error)
+    elif s == "confirmed":        _render_simple("green", "Added to Bring!", p_name)
+    elif s == "webui_hint":       _render_webui_hint()
+    elif s == "menu":             _render_menu()
+    elif s == "list_loading":     _render_processing(p_label)
+    elif s == "list_view":        _render_list_view(items, items_page, items_error)
 
 # ── Display power management ──────────────────────────────────────────────────
 
@@ -341,17 +422,45 @@ def _do_confirm(barcode, result):
     detail = " • ".join(p for p in [brand, qty] if p)
     set_state(product_name=name, product_detail=detail)
 
-    if add_to_bring(name, brand, qty):
+    status = add_to_bring(name, brand, qty)
+    if status in ("added", "duplicate"):
+        # Either way the barcode → name mapping is now known: learn it.
         _remove_unknown(barcode)
         _save_custom(barcode, name)
-        set_state(screen="confirmed")
+        next_screen = "confirmed" if status == "added" else "already_in_list"
+        set_state(screen=next_screen)
         _thread(upload_to_openfoodfacts, barcode, name, brand, qty, FRONT_PHOTO)
-        time.sleep(2)
-        if get_state("screen") == "confirmed":
+        time.sleep(3 if status == "duplicate" else 2)
+        if get_state("screen") == next_screen:
             set_state(screen="idle", barcode="", result=None, error="",
                       product_name="", product_detail="")
     else:
         set_state(screen="result_screen", error="HA error — not added")
+
+def _load_shopping_list():
+    set_state(processing_label="Loading list…", screen="list_loading")
+    items = fetch_shopping_items()
+    if items is None:
+        set_state(screen="list_view", items=[], items_page=0,
+                  items_error="Failed to load list")
+    else:
+        set_state(screen="list_view", items=items, items_page=0, items_error="")
+
+def _delete_item(uid, name):
+    set_state(processing_label="Removing…", screen="list_loading")
+    ok = remove_from_bring(uid)
+    if not ok and uid != name:
+        # Fall back to deleting by summary if uid-based delete failed
+        ok = remove_from_bring(name)
+    if not ok:
+        items = fetch_shopping_items() or get_state("items")
+        set_state(screen="list_view", items=items,
+                  items_error=f"Failed to remove '{name}'")
+        return
+    items = fetch_shopping_items() or []
+    n_pages = max(1, (len(items) + LIST_PAGE_SIZE - 1) // LIST_PAGE_SIZE)
+    page = min(get_state("items_page") or 0, n_pages - 1)
+    set_state(screen="list_view", items=items, items_page=page, items_error="")
 
 def _webui_then_idle():
     set_state(screen="webui_hint")
@@ -381,7 +490,9 @@ def handle_touch(pos):
         return
 
     if s == "menu":
-        if action == "restart":
+        if action == "shopping_list":
+            _thread(_load_shopping_list)
+        elif action == "restart":
             pygame.quit()
             os.execv(sys.executable, [sys.executable] + sys.argv)
         elif action == "close":
@@ -389,6 +500,23 @@ def handle_touch(pos):
             sys.exit(0)
         elif action == "cancel":
             set_state(screen="idle")
+
+    elif s == "list_view":
+        if action == "back":
+            set_state(screen="menu")
+        elif action == "prev":
+            page = get_state("items_page") or 0
+            if page > 0:
+                set_state(items_page=page - 1)
+        elif action == "next":
+            n = len(get_state("items") or [])
+            page = get_state("items_page") or 0
+            n_pages = max(1, (n + LIST_PAGE_SIZE - 1) // LIST_PAGE_SIZE)
+            if page < n_pages - 1:
+                set_state(items_page=page + 1)
+        elif isinstance(action, tuple) and action and action[0] == "delete":
+            _, uid, name = action
+            _thread(_delete_item, uid, name)
 
     elif s == "choice":
         if action == "auto":
@@ -471,7 +599,43 @@ def lookup_product(barcode):
     except Exception:
         return None
 
+def fetch_shopping_items():
+    """Returns active items [{uid, summary, status}, …] or None on error."""
+    try:
+        r = requests.post(
+            f"{HA_URL}/api/services/todo/get_items?return_response",
+            headers={"Authorization": f"Bearer {HA_TOKEN}", "Content-Type": "application/json"},
+            json={"entity_id": HA_TODO_ENTITY}, timeout=5,
+        )
+        if r.status_code != 200:
+            return None
+        data   = r.json()
+        bucket = data.get("service_response", {}).get(HA_TODO_ENTITY, {})
+        items  = bucket.get("items", []) or []
+        return [it for it in items if it.get("status") != "completed"]
+    except Exception:
+        return None
+
+def remove_from_bring(uid_or_name):
+    try:
+        r = requests.post(
+            f"{HA_URL}/api/services/todo/remove_item",
+            headers={"Authorization": f"Bearer {HA_TOKEN}", "Content-Type": "application/json"},
+            json={"entity_id": HA_TODO_ENTITY, "item": uid_or_name}, timeout=5,
+        )
+        return r.status_code in (200, 201)
+    except Exception:
+        return False
+
 def add_to_bring(name, brand="", quantity=""):
+    """Returns one of 'added', 'duplicate', 'error'."""
+    items = fetch_shopping_items()
+    if items is not None:
+        nl = name.strip().lower()
+        if any((it.get("summary") or "").strip().lower() == nl for it in items):
+            return "duplicate"
+    # else: list fetch failed → fall through and add (best-effort)
+
     parts   = [p for p in [brand, quantity] if p]
     payload = {"entity_id": HA_TODO_ENTITY, "item": name}
     if parts:
@@ -482,9 +646,9 @@ def add_to_bring(name, brand="", quantity=""):
             headers={"Authorization": f"Bearer {HA_TOKEN}", "Content-Type": "application/json"},
             json=payload, timeout=5,
         )
-        return r.status_code in (200, 201)
+        return "added" if r.status_code in (200, 201) else "error"
     except Exception:
-        return False
+        return "error"
 
 def _log_unknown(barcode):
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -528,19 +692,21 @@ def handle_barcode(barcode):
     if _screen_blanked:
         _wake_screen()
     _mark_activity()
-    if get_state("screen") not in ("idle", "known_ok", "known_err", "menu"):
+    if get_state("screen") not in ("idle", "known_ok", "known_err", "already_in_list", "menu"):
         return
     set_state(screen="lookup", barcode=barcode)
 
     custom_name = lookup_custom(barcode)
     if custom_name:
-        success = add_to_bring(custom_name)
-        if success:
-            set_state(screen="known_ok", product_name=custom_name, product_detail="Custom barcode")
+        status = add_to_bring(custom_name)
+        if status == "added":
+            set_state(screen="known_ok",        product_name=custom_name, product_detail="Custom barcode")
+        elif status == "duplicate":
+            set_state(screen="already_in_list", product_name=custom_name, product_detail="Custom barcode")
         else:
-            set_state(screen="known_err", product_name=custom_name, product_detail="Custom barcode")
+            set_state(screen="known_err",       product_name=custom_name, product_detail="Custom barcode")
         time.sleep(3)
-        if get_state("screen") in ("known_ok", "known_err"):
+        if get_state("screen") in ("known_ok", "known_err", "already_in_list"):
             set_state(screen="idle", barcode="")
         return
 
@@ -554,12 +720,15 @@ def handle_barcode(barcode):
     brand  = product["brand"]
     qty    = product["quantity"]
     detail = " • ".join(p for p in [brand, qty] if p)
-    if add_to_bring(name, brand, qty):
-        set_state(screen="known_ok", product_name=name, product_detail=detail)
+    status = add_to_bring(name, brand, qty)
+    if status == "added":
+        set_state(screen="known_ok",        product_name=name, product_detail=detail)
+    elif status == "duplicate":
+        set_state(screen="already_in_list", product_name=name, product_detail=detail)
     else:
-        set_state(screen="known_err", product_name=name, product_detail=detail)
+        set_state(screen="known_err",       product_name=name, product_detail=detail)
     time.sleep(3)
-    if get_state("screen") in ("known_ok", "known_err"):
+    if get_state("screen") in ("known_ok", "known_err", "already_in_list"):
         set_state(screen="idle", barcode="")
 
 # ── Scanner loop ──────────────────────────────────────────────────────────────

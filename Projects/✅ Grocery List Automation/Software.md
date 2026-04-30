@@ -63,44 +63,59 @@ State machine running on the pygame main thread. Touch events (`MOUSEBUTTONDOWN`
 ```
 
 ### Screen states
-| Screen           | Description                                           |
-|------------------|-------------------------------------------------------|
-| `idle`           | Dark — "Ready — scan a product". Tap → menu.          |
-| `lookup`         | Dark — "Looking up…" while OpenFoodFacts query runs   |
-| `known_ok`       | Green — product name + brand/qty. Auto-idle after 3s  |
-| `known_err`      | Yellow — name + "not added". Auto-idle after 3s       |
-| `unknown_screen` | Red — "Unknown product". Tap anywhere → `choice`      |
-| `choice`         | Auto (camera) / Use web UI buttons                    |
-| `front_prompt`   | "Place front toward camera" + Take photo button       |
-| `back_prompt`    | "Add back photo?" — Take back / Identify now          |
-| `processing`     | "Taking photo… / Identifying…" — no buttons           |
-| `result_screen`  | AI result: name, brand, qty, confidence + Accept / Try again / Web UI |
-| `confirmed`      | Green — "Added to Bring!". Auto-idle after 2s         |
-| `webui_hint`     | Shows IP address + "Back to main menu" button         |
-| `menu`           | Restart / Close / Cancel buttons                      |
+| Screen             | Description                                           |
+|--------------------|-------------------------------------------------------|
+| `idle`             | Dark — "Ready — scan a product". Tap → menu.          |
+| `lookup`           | Dark — "Looking up…" while OpenFoodFacts query runs   |
+| `known_ok`         | Green — product name + brand/qty. Auto-idle after 3s  |
+| `known_err`        | Yellow — name + "not added". Auto-idle after 3s       |
+| `already_in_list`  | Yellow — "Already in shopping list" + name. Auto-idle after 3s |
+| `unknown_screen`   | Red — "Unknown product". Tap anywhere → `choice`      |
+| `choice`           | Auto (camera) / Use web UI buttons                    |
+| `front_prompt`     | "Place front toward camera" + Take photo button       |
+| `back_prompt`      | "Add back photo?" — Take back / Identify now          |
+| `processing`       | "Taking photo… / Identifying…" — no buttons           |
+| `result_screen`    | AI result: name, brand, qty, confidence + Accept / Try again / Web UI |
+| `confirmed`        | Green — "Added to Bring!". Auto-idle after 2s         |
+| `webui_hint`       | Shows IP address + "Back to main menu" button         |
+| `menu`             | Shopping List / Restart / Close / Cancel buttons      |
+| `list_loading`     | Dark — "Loading list…" or "Removing…" — no buttons    |
+| `list_view`        | Dark — paginated Bring! items, ✕ per row, Prev/Back/Next footer |
 
 ### Scanner gating
-`handle_barcode()` is a no-op unless `screen` is `idle`, `known_ok`, or `known_err`. This prevents the barcode scanner from interrupting the touchscreen identification flow.
+`handle_barcode()` is a no-op unless `screen` is `idle`, `known_ok`, `known_err`, `already_in_list`, or `menu`. This prevents the barcode scanner from interrupting the touchscreen identification flow or the shopping-list browse view.
+
+### Duplicate-add detection
+`add_to_bring()` returns one of `"added"`, `"duplicate"`, or `"error"`. Before any `todo.add_item` call, the daemon fetches the active Bring! list via `todo.get_items?return_response` and case-insensitively compares the trimmed product name against each `summary`. If it already exists the scanner shows `already_in_list` (yellow, 3 s) instead of adding a second copy. If the list fetch fails the add proceeds anyway — better to risk a duplicate than block the user when HA is momentarily unreachable.
+
+The Gemini-identification flow (`_do_confirm`) treats a duplicate as a successful identification: the barcode → name mapping is still saved to `custom_barcodes.json` and the photo is still uploaded to OpenFoodFacts, so future re-scans of the same barcode hit the duplicate path instantly without a Gemini call.
+
+### Shopping list view
+Tap the screen → menu → **Shopping List**. The daemon calls `todo.get_items` and renders a paginated list (5 items per page) of active Bring! entries. Each row has a red **X** button that calls `todo.remove_item` (by `uid`, falling back to `summary`) and refreshes the list in place. Footer: Prev / Back / Next. Useful for both checking before scanning ("is milk already on the list?") and undoing accidental scans without reaching for a phone.
 
 ### Barcode resolution order
-1. Check `custom_barcodes.json` — if found, add to Bring! immediately (no network lookup).
+1. Check `custom_barcodes.json` — if found, dup-check then add to Bring! (no OFF lookup).
 2. Query OpenFoodFacts v2: `GET https://world.openfoodfacts.org/api/v2/product/{barcode}.json`
-3. On hit: extract name (DE → ES → EN → `product_name` → any `product_name_*` field → brand fallback), add to Bring! with brand + quantity as description.
+3. On hit: extract name (DE → ES → EN → `product_name` → any `product_name_*` field → brand fallback), dup-check, then add to Bring! with brand + quantity as description.
 4. On miss: append `{barcode, timestamp}` to `unknown.jsonl`, show `unknown_screen`.
 
 ### HA integration
-```
-POST {HA_URL}/api/services/todo/add_item
-Authorization: Bearer {LONG_LIVED_TOKEN}
-Content-Type: application/json
+Three `todo` services on `todo.shopping` (friendly name "Bring!", config entry `01JB51G7N4TRZ6CX5J1QMXT2Z9`), all authenticated with the long-lived token from `.env`:
 
-{
-  "entity_id": "todo.shopping",
-  "item": "<product name>",
-  "description": "<brand> • <quantity>"
-}
+```http
+POST {HA_URL}/api/services/todo/add_item
+{ "entity_id": "todo.shopping", "item": "<product name>",
+  "description": "<brand> • <quantity>" }
+
+POST {HA_URL}/api/services/todo/get_items?return_response
+{ "entity_id": "todo.shopping" }
+# → { "service_response": { "todo.shopping": { "items": [
+#       {"uid": "...", "summary": "Milk", "status": "needs_action"}, …
+#     ] } } }
+
+POST {HA_URL}/api/services/todo/remove_item
+{ "entity_id": "todo.shopping", "item": "<uid or summary>" }
 ```
-Entity: `todo.shopping` (friendly name "Bring!", config entry `01JB51G7N4TRZ6CX5J1QMXT2Z9`).
 
 ### Config (`.env`)
 ```
