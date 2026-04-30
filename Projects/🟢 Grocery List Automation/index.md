@@ -13,6 +13,14 @@ A kitchen-counter scan-and-done station that adds items to the Bring! shopping l
 - [[Projects/🟢 Grocery List Automation/Hardware]] — components, wiring, network, mounting
 - [[Projects/🟢 Grocery List Automation/Software]] — daemon, web app, HA integration, autostart
 
+## Files
+- **3D-printable enclosure** — `Files/Enclosure/`
+  - [[Files/Enclosure/Grocery Scanner enclosure.3mf|Grocery Scanner enclosure.3mf]] — Bambu Studio project (slicer-ready)
+  - [[Files/Enclosure/Body.stl|Body.stl]] — main shell housing the BTT TFT50 + Pi 4
+  - [[Files/Enclosure/Rear panel.stl|Rear panel.stl]] — back cover with vents
+  - [[Files/Enclosure/connectors-plate.stl|connectors-plate.stl]] — IKEA SKADIS mounting plate
+  - [[Files/Enclosure/connectors-pegs.stl|connectors-pegs.stl]] — SKADIS pegs that clip the plate to the pegboard
+
 ## Background
 
 ### Why
