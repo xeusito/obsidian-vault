@@ -2,20 +2,22 @@
 pm-project: true
 id: "368ebf0315314be6"
 title: "Grocery List Automation"
-description: "Raspberry Pi barcode scanner station — scan product → OpenFoodFacts → Bring! via HA. LED + LCD + audio feedback."
-color: "#8a94a0"
-icon: "🟡"
+description: "Kitchen-counter Raspberry Pi barcode scanner — scan → OpenFoodFacts → Bring! via HA, with Gemini AI vision fallback, thermal monitoring, and a SKADIS-mounted 3D-printed enclosure."
+color: "#79b58d"
+icon: "✅"
+version: "1.0"
+completedAt: "2026-04-30"
 taskIds: ["c552bb335eb84d08", "8200efd47448498a", "341571e82f184914", "102ded91151646b8", "840e6682d6bb4df3", "e0242bbe0de8489f"]
 customFields: []
 teamMembers: []
 savedViews: []
 createdAt: "2026-04-26T10:00:00.000Z"
-updatedAt: "2026-04-29T22:15:33.019Z"
+updatedAt: "2026-04-30T00:00:00.000Z"
 ---
 
-# 🟡 Grocery List Automation
+# ✅ Grocery List Automation — v1.0
 
-Raspberry Pi barcode scanner station — scan product → OpenFoodFacts → Bring! via HA. LED + LCD + audio feedback.
+Kitchen-counter Raspberry Pi barcode scanner — scan → OpenFoodFacts → Bring! via HA, with Gemini AI vision fallback, thermal monitoring, and a SKADIS-mounted 3D-printed enclosure.
 
 ## Tasks
 - [x] [[order-lcd-module-(ssd1306-oled)-and-spea-c552bb33|Order LCD module (SSD1306 OLED) and speaker amp (PAM8302)]]
