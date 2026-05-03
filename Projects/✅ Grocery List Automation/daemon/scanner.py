@@ -23,6 +23,7 @@ DATA_DIR       = os.getenv("DATA_DIR", "./data")
 UNKNOWN_LOG    = os.path.join(DATA_DIR, "unknown.jsonl")
 CUSTOM_MAP     = os.path.join(DATA_DIR, "custom_barcodes.json")
 MANUAL_LOG     = os.path.join(DATA_DIR, "manual_items.jsonl")
+BARCODE_INDEX  = os.path.join(DATA_DIR, "barcode_index.json")
 
 FRONT_PHOTO    = "/tmp/grocery_front.jpg"
 BACK_PHOTO     = "/tmp/grocery_back.jpg"
@@ -768,6 +769,7 @@ def _do_confirm(barcode, result):
         # Either way the barcode → name mapping is now known: learn it.
         _remove_unknown(barcode)
         _save_custom(barcode, name)
+        _save_barcode_index(barcode, name)
         next_screen = "confirmed" if status == "added" else "already_in_list"
         set_state(screen=next_screen)
         _thread(upload_to_openfoodfacts, barcode, name, brand, qty, FRONT_PHOTO)
@@ -1160,6 +1162,19 @@ def _save_custom(barcode, name):
     except Exception:
         pass
 
+def _save_barcode_index(barcode, name):
+    try:
+        data = {}
+        if os.path.exists(BARCODE_INDEX):
+            with open(BARCODE_INDEX) as f:
+                data = json.load(f)
+        data[name] = barcode
+        os.makedirs(DATA_DIR, exist_ok=True)
+        with open(BARCODE_INDEX, "w") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+
 # ── Barcode handler ───────────────────────────────────────────────────────────
 
 def handle_barcode(barcode):
@@ -1176,6 +1191,8 @@ def handle_barcode(barcode):
     custom_name = lookup_custom(barcode)
     if custom_name:
         status = add_to_bring(custom_name)
+        if status in ("added", "duplicate"):
+            _save_barcode_index(barcode, custom_name)
         if status == "added":
             set_state(screen="known_ok",        product_name=custom_name, product_detail="Custom barcode")
         elif status == "duplicate":
@@ -1198,6 +1215,8 @@ def handle_barcode(barcode):
     qty    = product["quantity"]
     detail = " • ".join(p for p in [brand, qty] if p)
     status = add_to_bring(name, brand, qty)
+    if status in ("added", "duplicate"):
+        _save_barcode_index(barcode, name)
     if status == "added":
         set_state(screen="known_ok",        product_name=name, product_detail=detail)
     elif status == "duplicate":

@@ -1,4 +1,4 @@
-# Software
+	# Software
 
 ## Stack
 - **Python 3.13** — scanner daemon (`scanner.py`) + shared vision module (`vision.py`) + web app (`webapp.py`).
@@ -188,24 +188,57 @@ OFF_PASSWORD=<OpenFoodFacts password>
 ```
 
 ### Autostart entries
+LXDE autostart launches both processes through a shared watchdog wrapper (`run-with-watchdog.sh`). The wrapper restarts a script every 5 s if it exits — UNLESS the stop flag `~/.grocery-scanner-stop` exists, in which case it exits cleanly and stays exited until the flag is removed.
+
 ```ini
 # ~/.config/autostart/grocery-scanner.desktop
 [Desktop Entry]
 Type=Application
 Name=Grocery Scanner
-Exec=bash -c 'while true; do python3 /home/pi/grocery-scanner/scanner.py; sleep 5; done'
+Exec=bash /home/pi/grocery-scanner/run-with-watchdog.sh scanner.py
 X-GNOME-Autostart-enabled=true
 
 # ~/.config/autostart/grocery-webapp.desktop
 [Desktop Entry]
 Type=Application
 Name=Grocery Scanner Web App
-Exec=bash -c 'sleep 10; while true; do python3 /home/pi/grocery-scanner/webapp.py; sleep 5; done'
+Exec=bash /home/pi/grocery-scanner/run-with-watchdog.sh webapp.py 10
 X-GNOME-Autostart-enabled=true
 ```
 
-### Desktop icon
-`~/Desktop/Start Scanner.desktop` — kills any running scanner instance and starts a fresh one. Used after closing the scanner via the on-screen menu.
+The wrapper itself (`/home/pi/grocery-scanner/run-with-watchdog.sh`):
+```bash
+#!/bin/bash
+# Usage: run-with-watchdog.sh <script.py> [initial_delay_sec]
+SCRIPT="$1"
+DELAY="${2:-0}"
+STOP_FILE="$HOME/.grocery-scanner-stop"
+[ "$DELAY" -gt 0 ] && sleep "$DELAY"
+while true; do
+    [ -f "$STOP_FILE" ] && exit 0
+    python3 "/home/pi/grocery-scanner/$SCRIPT"
+    [ -f "$STOP_FILE" ] && exit 0
+    sleep 5
+done
+```
+
+### Stop / restart from the touchscreen
+The on-screen menu's **Close** button creates `~/.grocery-scanner-stop` before exiting. The watchdog sees the flag on the next loop iteration and exits cleanly — the scanner stays down across reboots until the flag is deleted. The HA `rest_command.shutdown_grocery_scanner_pi` (invoked by the *Shutdown Pi* notification button) goes a step further and powers the Pi off.
+
+To bring the scanner back up: double-tap **Restart Grocery Scanner** on the desktop. That shortcut (`~/Desktop/restart-grocery-scanner.desktop`) deletes the stop flag and re-launches both watchdogs:
+```ini
+[Desktop Entry]
+Type=Application
+Name=Restart Grocery Scanner
+Exec=bash -c "rm -f $HOME/.grocery-scanner-stop && bash /home/pi/grocery-scanner/run-with-watchdog.sh scanner.py & bash /home/pi/grocery-scanner/run-with-watchdog.sh webapp.py 2 & disown"
+Icon=system-run
+Terminal=false
+```
+
+Or from SSH:
+```bash
+rm -f ~/.grocery-scanner-stop && sudo systemctl --user start lxde-pi-rc  # or just reboot
+```
 
 ---
 
@@ -313,6 +346,66 @@ rest_command:
 ```
 
 > **Gotcha:** the Pi's `/shutdown` route does an exact-string compare (`auth == "Bearer <HA_TOKEN>"`). YAML can't concatenate `"Bearer "` with `!secret` inline, so the secret value itself must include the prefix. After editing `secrets.yaml`, reload via **Dev Tools → YAML → "REST commands"** (the big "Quick Reload" button does **not** include rest_commands).
+
+---
+
+## Monitoring (Netdata Agent + Cloud)
+
+The Pi runs the **Netdata Agent** locally and is claimed to **Netdata Cloud** in the same Space as the Proxmox node. The Cloud Space has a single email notification channel (`nelsonmoreira@gmail.com`) that all alerts route through.
+
+### Install
+```bash
+wget -O /tmp/netdata-kickstart.sh https://get.netdata.cloud/kickstart.sh
+sh /tmp/netdata-kickstart.sh --stable-channel --disable-telemetry
+# Claim command from Netdata Cloud → Add nodes → Linux:
+sudo netdata-claim.sh -token=<TOKEN> -rooms=<ROOM_ID> -url=https://app.netdata.cloud
+```
+Local dashboard: `http://192.168.0.162:19999`. Footprint on the Pi 4: ~50–80 MB RAM, 1–2 % CPU.
+
+### Custom alert — WiFi signal strength
+The Pi's WiFi tends toward the weak side of the kitchen 2.4 GHz coverage. A custom alert flags sustained low signal so degradation surfaces as an email rather than as failed scans.
+
+`/etc/netdata/health.d/wifi_signal.conf`:
+```
+alarm: wifi_signal_low
+   on: wireless.wlan0_signal_level
+class: Utilization
+ type: System
+component: Network
+   os: linux
+hosts: *
+ calc: $signal_level
+units: dBm
+every: 30s
+ warn: $this < -75
+ crit: $this < -80
+delay: down 5m multiplier 1.5 max 1h
+ info: WiFi signal degraded; below -75 dBm warns, below -80 dBm critical.
+       Sustained signal below -75 dBm correlates with packet loss
+       and TCP stalls on this Pi.
+   to: sysadmin
+```
+
+After editing: `sudo netdatacli reload-health`. Verify the alert is loaded:
+```bash
+curl -s http://localhost:19999/api/v1/alarms?all | grep wifi_signal_low
+```
+
+### Other alerts in use
+| Alert | Source | Trigger |
+|---|---|---|
+| `wifi_signal_low` | custom (above) | Wi-Fi signal < -75 dBm warn / < -80 dBm crit |
+| `disk_space_usage` | Netdata default (`/usr/lib/netdata/conf.d/health.d/disks.conf`) | Mount > 90 % warn / > 98 % crit |
+| **Node disconnected** | Netdata Cloud (UI rule, not local config) | Node stops streaming for > 2 min |
+
+The Cloud-level node-disconnect rule is essential — local agent alerts can't fire when the agent is down. The Cloud sees the stream stop and emails from its side, surviving full Pi outages.
+
+### Useful charts to watch
+- `wireless.wlan0_signal_level` — historical signal trend, correlate dips with scan failures
+- `wireless.wlan0_link_quality` — composite signal/noise quality
+- `net.wlan0` (errors/drops) — packet loss
+- `disk_space./` — SD card usage
+- `system.cpu` + `sensors.coretemp` — pairs well with the existing `tempmon.py` HA telemetry
 
 ---
 
