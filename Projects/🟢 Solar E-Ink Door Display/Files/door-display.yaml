@@ -1,0 +1,184 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Solar E-Ink Door Display — ESPHome config
+# Phase 2 (display + HA data) + Phase 3a (MAX17048 fuel gauge)
+#
+# Hardware:
+#   ESP32 dev board (CP2102) · Waveshare 7.5" V2 e-ink ·
+#   MAX17048 fuel gauge (in-line: battery → MAX17048 → DFR0559) ·
+#   Powered via DFR0559 5V → ESP32 VIN → onboard LDO → 3V3 rail
+#
+# Pending (Phase 3b): deep_sleep, WS2812B alert LED (GPIO25), buttons (GPIO32/33/26/27)
+# ─────────────────────────────────────────────────────────────────────────────
+
+esphome:
+  name: door-display
+  friendly_name: Door Display
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+
+api:
+  encryption:
+    key: "laHKYmI3o0VLGx5NNsTtbtgzb0Z7NpdtKVtZIyXENmw="
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Door Display Fallback"
+    password: !secret ap_password
+
+captive_portal:
+
+time:
+  - platform: sntp
+    id: ha_time
+    timezone: "Europe/Zurich"
+
+# ── Buses ────────────────────────────────────────────────────────────────────
+spi:
+  clk_pin: GPIO18
+  mosi_pin: GPIO23
+  miso_pin: GPIO19
+
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+  scan: true                  # logs detected I²C addresses on boot — MAX17048 = 0x36
+
+# ── Sensors (MAX17048 fuel gauge) ────────────────────────────────────────────
+sensor:
+  - platform: max17043        # ESPHome only ships max17043 — works with MAX17048
+    battery_voltage:          # (same I²C addr 0x36, same VCELL/SOC registers)
+      name: "Door Display Battery Voltage"
+      id: bat_voltage
+    battery_level:
+      name: "Door Display Battery Level"
+      id: bat_level
+    update_interval: 60s
+
+# ── HA text sensors (calendar / weather / trash / alert) ─────────────────────
+text_sensor:
+  - platform: homeassistant
+    id: ev1
+    entity_id: input_text.door_display_event_1
+    internal: true
+  - platform: homeassistant
+    id: ev2
+    entity_id: input_text.door_display_event_2
+    internal: true
+  - platform: homeassistant
+    id: ev3
+    entity_id: input_text.door_display_event_3
+    internal: true
+  - platform: homeassistant
+    id: waste_next
+    entity_id: sensor.door_display_waste_next
+    internal: true
+  - platform: homeassistant
+    id: weather_summary
+    entity_id: sensor.door_display_weather
+    internal: true
+  - platform: homeassistant
+    id: alert_text
+    entity_id: input_text.door_display_alert
+    internal: true
+
+# ── Fonts (Bold for e-ink legibility · GF_Latin_Kernel for PT/ES accents) ───
+font:
+  - file:
+      type: gfonts
+      family: Roboto
+      weight: 700
+    id: font_date
+    size: 36
+    glyphs: ' !"%()+=,-–—_.:°?/0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÀÁÂÃÄÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜàáâãäçèéêëìíîïñòóôõöùúûü¿¡€•·'
+  - file:
+      type: gfonts
+      family: Roboto
+      weight: 700
+    id: font_body
+    size: 22
+    glyphs: ' !"%()+=,-–—_.:°?/0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÀÁÂÃÄÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜàáâãäçèéêëìíîïñòóôõöùúûü¿¡€•·'
+  - file:
+      type: gfonts
+      family: Roboto
+      weight: 700
+    id: font_small
+    size: 16
+    glyphs: ' !"%()+=,-–—_.:°?/0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÀÁÂÃÄÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜàáâãäçèéêëìíîïñòóôõöùúûü¿¡€•·'
+  - file:
+      type: gfonts
+      family: Noto Sans Symbols 2
+    id: font_icon
+    size: 22
+    glyphs: ["⚠"]
+
+# ── Display ──────────────────────────────────────────────────────────────────
+display:
+  - platform: waveshare_epaper
+    cs_pin: GPIO15
+    dc_pin: GPIO17
+    reset_pin: GPIO16
+    busy_pin: GPIO4
+    model: 7.50inv2
+    rotation: 0°
+    update_interval: 300s     # 5 min — full refresh takes 3–5s, no need to repeat every minute
+    lambda: |-
+      it.fill(COLOR_OFF);
+
+      // ── Header ────────────────────────────────────────────────
+      auto now = id(ha_time).now();
+      if (now.is_valid()) {
+        it.strftime(10, 10, id(font_date), "%A, %d %B %Y", now);
+      }
+      if (id(bat_level).has_state()) {
+        it.printf(650, 16, id(font_small), "Bat: %.0f%% (%.2fV)",
+                  id(bat_level).state, id(bat_voltage).state);
+      } else {
+        it.print(650, 16, id(font_small), "Bat: --%");
+      }
+      it.line(0, 65, 800, 65);
+
+      // ── Upcoming events (left column) ─────────────────────────
+      it.print(10, 74, id(font_small), "UPCOMING");
+      it.print(10, 100, id(font_body), id(ev1).state.c_str());
+      it.print(10, 132, id(font_body), id(ev2).state.c_str());
+      it.print(10, 164, id(font_body), id(ev3).state.c_str());
+
+      // ── Vertical divider ──────────────────────────────────────
+      it.line(400, 65, 400, 415);
+
+      // ── Weather (right top) ───────────────────────────────────
+      it.print(412, 74, id(font_small), "WEATHER");
+      it.print(412, 100, id(font_body), id(weather_summary).state.c_str());
+
+      // ── Trash (right bottom) ──────────────────────────────────
+      it.line(400, 210, 800, 210);
+      it.print(412, 220, id(font_small), "TRASH");
+      auto waste = id(waste_next).state;
+      size_t sep = waste.find('|');
+      std::string wl1 = (sep != std::string::npos) ? waste.substr(0, sep) : waste;
+      std::string wl2 = (sep != std::string::npos) ? waste.substr(sep + 1) : "";
+      it.print(412, 246, id(font_body), wl1.c_str());
+      if (!wl2.empty()) {
+        it.print(412, 278, id(font_body), wl2.c_str());
+      }
+
+      // ── Alert footer ──────────────────────────────────────────
+      it.line(0, 415, 800, 415);
+      auto alert = id(alert_text).state;
+      if (alert.length() > 0 && alert != "unknown") {
+        it.print(10, 435, id(font_icon), "⚠");
+        it.printf(40, 435, id(font_body), " %s", alert.c_str());
+      } else {
+        it.print(10, 435, id(font_body), "No alerts");
+      }

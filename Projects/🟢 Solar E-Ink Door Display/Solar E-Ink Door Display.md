@@ -18,8 +18,8 @@ updatedAt: "2026-04-26T17:52:16.823Z"
 Solar-powered e-ink display behind the front door — calendar events, trash schedule, HA alerts via ESPHome.
 
 ## Tasks
-- [ ] [[receive-kiwi-electronics-parcel-(esp32c6-02a3d839|Receive Kiwi Electronics parcel (ESP32C6, MAX17048, buttons, cables)]]
-- [ ] [[start-esphome-yaml-config-(display,-powe-88be57e4|Start ESPHome YAML config (display, power management, HA integration)]]
+- [x] [[receive-kiwi-electronics-parcel-(esp32c6-02a3d839|Receive Kiwi Electronics parcel (ESP32C6, MAX17048, buttons, cables)]]
+- [x] [[start-esphome-yaml-config-(display,-powe-88be57e4|Start ESPHome YAML config (display, power management, HA integration)]]
 - [ ] [[wire-breadboard-prototype-and-test-ha-co-ea27cebe|Wire breadboard prototype and test HA connection]]
 - [ ] [[design-and-print-3d-enclosure-efdfcc80|Design and print 3D enclosure]]
 - [ ] [[final-assembly-and-door-mount-1f2aa366|Final assembly and door mount]]

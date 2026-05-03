@@ -13,6 +13,7 @@ A solar-powered e-ink information display mounted behind the front door. Shows c
 ## Subpages
 - [[Hardware]] — power system, display, wiring, BOM
 - [[Software]] — ESPHome YAML, Home Assistant integration
+- [[Wiring]] — soldering diagram, pin table, power chain
 - [[Enclosure]] — 3D design, dimensions, layout
 
 ## Status

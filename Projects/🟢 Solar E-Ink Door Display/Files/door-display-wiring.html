@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Solar E-Ink Door Display — Wiring Diagram</title>
+<style>
+  body { margin:0; padding:16px 16px 8px; background:#0f172a; font-family:'Courier New',monospace; }
+  h1   { color:#94a3b8; font-size:14px; font-weight:normal; margin:0 0 10px; letter-spacing:.06em; }
+  p    { color:#475569; font-size:11px; margin:6px 0 0; }
+</style>
+</head>
+<body>
+<h1>SOLAR E-INK DOOR DISPLAY — WIRING DIAGRAM</h1>
+<svg width="1380" height="970" viewBox="0 0 1380 970" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <symbol id="gnd" viewBox="0 0 24 22" width="24" height="22">
+    <line x1="12" y1="0"  x2="12" y2="7"  stroke="#64748b" stroke-width="1.5"/>
+    <line x1="2"  y1="7"  x2="22" y2="7"  stroke="#64748b" stroke-width="1.5"/>
+    <line x1="5"  y1="11" x2="19" y2="11" stroke="#64748b" stroke-width="1.5"/>
+    <line x1="8"  y1="15" x2="16" y2="15" stroke="#64748b" stroke-width="1.5"/>
+  </symbol>
+  <marker id="arr-r" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+    <polygon points="0,0 7,3.5 0,7" fill="#94a3b8"/>
+  </marker>
+</defs>
+
+<!-- ── Background ───────────────────────────────────────────────── -->
+<rect width="1380" height="970" fill="#0f172a"/>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SECTION HEADER: POWER CHAIN
+     ══════════════════════════════════════════════════════════════════ -->
+<text x="20" y="22" font-size="10" font-weight="bold" fill="#475569" font-family="Courier New" letter-spacing="0.2em">POWER CHAIN  ▸  solar → charger → fuel-gauge (in-line) → battery</text>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     TOP ROW — POWER CHAIN (left → right)
+     Solar Panel → DFR0559 → MAX17048 → Battery
+     This row makes the in-line topology IMMEDIATELY OBVIOUS.
+     ══════════════════════════════════════════════════════════════════ -->
+
+<!-- ── SOLAR PANEL ──────────────────────────────────────────────── -->
+<rect x="20" y="48" width="140" height="92" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+<text x="90" y="72" text-anchor="middle" font-size="11" font-weight="bold" fill="#f1f5f9" font-family="Courier New">SOLAR PANEL</text>
+<text x="90" y="88" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Courier New">Reolink 12W</text>
+<text x="90" y="103" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Courier New">5V output</text>
+<circle cx="160" cy="78" r="3.5" fill="#ef4444"/>
+<text x="155" y="82" text-anchor="end" font-size="8" fill="#fca5a5" font-family="Courier New">+</text>
+<circle cx="160" cy="115" r="3.5" fill="#64748b"/>
+<text x="155" y="119" text-anchor="end" font-size="8" fill="#94a3b8" font-family="Courier New">−</text>
+
+<!-- ── DFR0559 (CHARGER) ───────────────────────────────────────── -->
+<rect x="210" y="28" width="210" height="160" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+<text x="315" y="52" text-anchor="middle" font-size="11" font-weight="bold" fill="#f1f5f9" font-family="Courier New">DFR0559</text>
+<text x="315" y="67" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Courier New">MPPT Solar Charger</text>
+<text x="315" y="81" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Courier New">CN3791 · KF396</text>
+<!-- Left pins (solar input) -->
+<circle cx="210" cy="78" r="3.5" fill="#ef4444"/>
+<text x="216" y="82" font-size="8" fill="#fca5a5" font-family="Courier New">IN+</text>
+<circle cx="210" cy="115" r="3.5" fill="#64748b"/>
+<text x="216" y="119" font-size="8" fill="#94a3b8" font-family="Courier New">IN−</text>
+<!-- Right pins (battery side — KF396 screw terminal) -->
+<circle cx="420" cy="78" r="3.5" fill="#ef4444"/>
+<text x="414" y="82" text-anchor="end" font-size="8" fill="#fca5a5" font-family="Courier New">BAT+</text>
+<circle cx="420" cy="115" r="3.5" fill="#64748b"/>
+<text x="414" y="119" text-anchor="end" font-size="8" fill="#94a3b8" font-family="Courier New">BAT−</text>
+<!-- Bottom pins (output rails) -->
+<circle cx="270" cy="188" r="3.5" fill="#fb923c"/>
+<text x="270" y="203" text-anchor="middle" font-size="8" fill="#fdba74" font-family="Courier New">5V</text>
+<circle cx="320" cy="188" r="3.5" fill="#64748b"/>
+<use href="#gnd" x="320" y="188"/>
+<circle cx="370" cy="188" r="3.5" fill="#475569"/>
+<text x="370" y="203" text-anchor="middle" font-size="8" fill="#64748b" font-family="Courier New">CHRG</text>
+
+<!-- ── MAX17048 (FUEL GAUGE — IN-LINE between charger and battery) -->
+<rect x="455" y="28" width="200" height="160" rx="8" fill="#1e293b" stroke="#fb923c" stroke-width="2"/>
+<text x="555" y="52" text-anchor="middle" font-size="11" font-weight="bold" fill="#fdba74" font-family="Courier New">MAX17048</text>
+<text x="555" y="67" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Courier New">Fuel Gauge (I2C)</text>
+<text x="555" y="81" text-anchor="middle" font-size="8" fill="#fb923c" font-family="Courier New">in-line: charger ↔ battery</text>
+<!-- Left pins (charger side — header pins, soldered wire to DFR0559 KF396) -->
+<circle cx="455" cy="78" r="3.5" fill="#ef4444"/>
+<text x="461" y="82" font-size="8" fill="#fca5a5" font-family="Courier New">BAT+</text>
+<circle cx="455" cy="115" r="3.5" fill="#64748b"/>
+<text x="461" y="119" font-size="8" fill="#94a3b8" font-family="Courier New">BAT−</text>
+<text x="461" y="135" font-size="7" fill="#475569" font-family="Courier New">(header pins</text>
+<text x="461" y="146" font-size="7" fill="#475569" font-family="Courier New"> to DFR0559)</text>
+<!-- Right pins (battery side — JST PH socket on breakout) -->
+<circle cx="655" cy="78" r="3.5" fill="#ef4444"/>
+<text x="649" y="82" text-anchor="end" font-size="8" fill="#fca5a5" font-family="Courier New">BAT+</text>
+<circle cx="655" cy="115" r="3.5" fill="#64748b"/>
+<text x="649" y="119" text-anchor="end" font-size="8" fill="#94a3b8" font-family="Courier New">BAT−</text>
+<text x="649" y="135" text-anchor="end" font-size="7" fill="#475569" font-family="Courier New">(JST PH socket</text>
+<text x="649" y="146" text-anchor="end" font-size="7" fill="#475569" font-family="Courier New">to battery)</text>
+<!-- Bottom pins: VCC (3V3 logic), GND, SDA, SCL -->
+<circle cx="490" cy="188" r="3.5" fill="#ef4444"/>
+<text x="490" y="203" text-anchor="middle" font-size="8" fill="#fca5a5" font-family="Courier New">VCC</text>
+<circle cx="525" cy="188" r="3.5" fill="#64748b"/>
+<use href="#gnd" x="525" y="188"/>
+<circle cx="585" cy="188" r="3.5" fill="#22c55e"/>
+<text x="585" y="203" text-anchor="middle" font-size="8" fill="#86efac" font-family="Courier New">SDA</text>
+<circle cx="620" cy="188" r="3.5" fill="#22c55e"/>
+<text x="620" y="203" text-anchor="middle" font-size="8" fill="#86efac" font-family="Courier New">SCL</text>
+
+<!-- ── BATTERY ─────────────────────────────────────────────────── -->
+<rect x="690" y="48" width="140" height="92" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+<text x="760" y="72" text-anchor="middle" font-size="11" font-weight="bold" fill="#f1f5f9" font-family="Courier New">BATTERY</text>
+<text x="760" y="88" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Courier New">Li-Po 3.7V</text>
+<text x="760" y="103" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Courier New">2000 mAh · JST pigtail</text>
+<circle cx="690" cy="78" r="3.5" fill="#ef4444"/>
+<text x="696" y="82" font-size="8" fill="#fca5a5" font-family="Courier New">+</text>
+<circle cx="690" cy="115" r="3.5" fill="#64748b"/>
+<text x="696" y="119" font-size="8" fill="#94a3b8" font-family="Courier New">−</text>
+
+<!-- ── Power chain wires (TOP ROW — short, horizontal, in-line) ─ -->
+<!-- Solar+ → DFR0559 IN+ -->
+<line x1="160" y1="78" x2="210" y2="78" stroke="#ef4444" stroke-width="2.5"/>
+<!-- Solar GND → DFR0559 IN− -->
+<line x1="160" y1="115" x2="210" y2="115" stroke="#64748b" stroke-width="2.5"/>
+<!-- DFR0559 BAT+ → MAX17048 BAT+ (charger side, header-pin solder wire) -->
+<line x1="420" y1="78" x2="455" y2="78" stroke="#ef4444" stroke-width="2.5"/>
+<!-- DFR0559 BAT− → MAX17048 BAT− -->
+<line x1="420" y1="115" x2="455" y2="115" stroke="#64748b" stroke-width="2.5"/>
+<text x="437" y="98" text-anchor="middle" font-size="7" fill="#fb923c" font-family="Courier New">2× wires</text>
+<text x="437" y="107" text-anchor="middle" font-size="7" fill="#fb923c" font-family="Courier New">(KF396)</text>
+<!-- MAX17048 (battery side) → Battery (JST PH pigtail) -->
+<line x1="655" y1="78" x2="690" y2="78" stroke="#ef4444" stroke-width="2.5"/>
+<line x1="655" y1="115" x2="690" y2="115" stroke="#64748b" stroke-width="2.5"/>
+<text x="672" y="98" text-anchor="middle" font-size="7" fill="#fb923c" font-family="Courier New">JST PH</text>
+<text x="672" y="107" text-anchor="middle" font-size="7" fill="#fb923c" font-family="Courier New">pigtail</text>
+
+<!-- Divider line below power chain -->
+<line x1="0" y1="225" x2="940" y2="225" stroke="#1e293b" stroke-width="1"/>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SECTION HEADER: SIGNAL FAN-OUT
+     ══════════════════════════════════════════════════════════════════ -->
+<text x="20" y="246" font-size="10" font-weight="bold" fill="#475569" font-family="Courier New" letter-spacing="0.2em">SIGNALS  ▸  ESP32 in centre · SPI right · I²C up · LED+buttons fan out</text>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     ESP32 (centre)
+     ══════════════════════════════════════════════════════════════════ -->
+<rect x="320" y="270" width="260" height="460" rx="8" fill="#1e293b" stroke="#3b82f6" stroke-width="2"/>
+<text x="450" y="296" text-anchor="middle" font-size="13" font-weight="bold" fill="#93c5fd" font-family="Courier New">ESP32</text>
+<text x="450" y="312" text-anchor="middle" font-size="9" fill="#64748b" font-family="Courier New">Dev Board (CP2102)</text>
+
+<!-- TOP pins: VIN, 3V3, GND, SDA, SCL -->
+<circle cx="370" cy="270" r="3.5" fill="#fb923c"/>
+<text x="370" y="263" text-anchor="middle" font-size="8" fill="#fdba74" font-family="Courier New">VIN</text>
+<circle cx="410" cy="270" r="3.5" fill="#ef4444"/>
+<text x="410" y="263" text-anchor="middle" font-size="8" fill="#fca5a5" font-family="Courier New">3V3</text>
+<circle cx="450" cy="270" r="3.5" fill="#64748b"/>
+<text x="450" y="263" text-anchor="middle" font-size="8" fill="#94a3b8" font-family="Courier New">GND</text>
+<circle cx="500" cy="270" r="3.5" fill="#22c55e"/>
+<text x="500" y="263" text-anchor="middle" font-size="8" fill="#86efac" font-family="Courier New">SDA·21</text>
+<circle cx="545" cy="270" r="3.5" fill="#22c55e"/>
+<text x="545" y="263" text-anchor="middle" font-size="8" fill="#86efac" font-family="Courier New">SCL·22</text>
+
+<!-- RIGHT side: SPI + e-ink control + LED data -->
+<circle cx="580" cy="335" r="3.5" fill="#ca8a04"/>
+<text x="574" y="339" text-anchor="end" font-size="9" fill="#fde68a" font-family="Courier New">GPIO18 CLK</text>
+<circle cx="580" cy="360" r="3.5" fill="#ca8a04"/>
+<text x="574" y="364" text-anchor="end" font-size="9" fill="#fde68a" font-family="Courier New">GPIO23 MOSI</text>
+<circle cx="580" cy="385" r="3.5" fill="#ca8a04"/>
+<text x="574" y="389" text-anchor="end" font-size="9" fill="#fde68a" font-family="Courier New">GPIO19 MISO</text>
+<circle cx="580" cy="410" r="3.5" fill="#ca8a04"/>
+<text x="574" y="414" text-anchor="end" font-size="9" fill="#fde68a" font-family="Courier New">GPIO15 CS</text>
+<circle cx="580" cy="445" r="3.5" fill="#3b82f6"/>
+<text x="574" y="449" text-anchor="end" font-size="9" fill="#93c5fd" font-family="Courier New">GPIO17 DC</text>
+<circle cx="580" cy="470" r="3.5" fill="#3b82f6"/>
+<text x="574" y="474" text-anchor="end" font-size="9" fill="#93c5fd" font-family="Courier New">GPIO16 RST</text>
+<circle cx="580" cy="495" r="3.5" fill="#3b82f6"/>
+<text x="574" y="499" text-anchor="end" font-size="9" fill="#93c5fd" font-family="Courier New">GPIO4  BUSY</text>
+<circle cx="580" cy="600" r="3.5" fill="#a855f7"/>
+<text x="574" y="604" text-anchor="end" font-size="9" fill="#d8b4fe" font-family="Courier New">GPIO25 LED</text>
+
+<!-- LEFT side: buttons + optional CHRG -->
+<circle cx="320" cy="555" r="3.5" fill="#a855f7"/>
+<text x="326" y="559" font-size="9" fill="#d8b4fe" font-family="Courier New">GPIO32 B1</text>
+<circle cx="320" cy="585" r="3.5" fill="#a855f7"/>
+<text x="326" y="589" font-size="9" fill="#d8b4fe" font-family="Courier New">GPIO33 B2</text>
+<circle cx="320" cy="615" r="3.5" fill="#a855f7"/>
+<text x="326" y="619" font-size="9" fill="#d8b4fe" font-family="Courier New">GPIO26 B3</text>
+<circle cx="320" cy="645" r="3.5" fill="#a855f7"/>
+<text x="326" y="649" font-size="9" fill="#d8b4fe" font-family="Courier New">GPIO27 B4</text>
+<circle cx="320" cy="690" r="3.5" fill="#475569"/>
+<text x="326" y="694" font-size="9" fill="#64748b" font-family="Courier New">GPIO14 CHRG (opt)</text>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     E-INK HAT (right of ESP32)
+     ══════════════════════════════════════════════════════════════════ -->
+<rect x="710" y="290" width="220" height="290" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+<text x="820" y="316" text-anchor="middle" font-size="12" font-weight="bold" fill="#f1f5f9" font-family="Courier New">E-INK HAT</text>
+<text x="820" y="332" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Courier New">Waveshare 7.5" V2 · 800×480</text>
+<!-- Left pins -->
+<circle cx="710" cy="358" r="3.5" fill="#ef4444"/>
+<text x="716" y="362" font-size="9" fill="#fca5a5" font-family="Courier New">VCC (3V3)</text>
+<circle cx="710" cy="378" r="3.5" fill="#64748b"/>
+<use href="#gnd" x="710" y="378"/>
+<circle cx="710" cy="408" r="3.5" fill="#ca8a04"/>
+<text x="716" y="412" font-size="9" fill="#fde68a" font-family="Courier New">CLK</text>
+<circle cx="710" cy="433" r="3.5" fill="#ca8a04"/>
+<text x="716" y="437" font-size="9" fill="#fde68a" font-family="Courier New">MOSI</text>
+<circle cx="710" cy="458" r="3.5" fill="#ca8a04"/>
+<text x="716" y="462" font-size="9" fill="#fde68a" font-family="Courier New">MISO</text>
+<circle cx="710" cy="483" r="3.5" fill="#ca8a04"/>
+<text x="716" y="487" font-size="9" fill="#fde68a" font-family="Courier New">CS</text>
+<circle cx="710" cy="510" r="3.5" fill="#3b82f6"/>
+<text x="716" y="514" font-size="9" fill="#93c5fd" font-family="Courier New">DC</text>
+<circle cx="710" cy="535" r="3.5" fill="#3b82f6"/>
+<text x="716" y="539" font-size="9" fill="#93c5fd" font-family="Courier New">RST</text>
+<circle cx="710" cy="558" r="3.5" fill="#3b82f6"/>
+<text x="716" y="562" font-size="9" fill="#93c5fd" font-family="Courier New">BUSY</text>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     WS2812B (right of ESP32, below E-ink)
+     ══════════════════════════════════════════════════════════════════ -->
+<rect x="710" y="610" width="220" height="105" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+<text x="820" y="635" text-anchor="middle" font-size="11" font-weight="bold" fill="#f1f5f9" font-family="Courier New">WS2812B</text>
+<text x="820" y="650" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Courier New">RGB alert LED</text>
+<circle cx="710" cy="668" r="3.5" fill="#fb923c"/>
+<text x="716" y="672" font-size="9" fill="#fdba74" font-family="Courier New">VCC (5V)</text>
+<circle cx="710" cy="688" r="3.5" fill="#64748b"/>
+<use href="#gnd" x="710" y="688"/>
+<circle cx="710" cy="705" r="3.5" fill="#a855f7"/>
+<text x="716" y="709" font-size="9" fill="#d8b4fe" font-family="Courier New">DIN</text>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     BUTTONS (bottom row, B1–B4)
+     ══════════════════════════════════════════════════════════════════ -->
+<text x="20" y="800" font-size="10" font-weight="bold" fill="#475569" font-family="Courier New" letter-spacing="0.2em">BUTTONS  ▸  one leg → GPIO · other leg → GND · internal pull-up</text>
+
+<!-- B1 -->
+<rect x="40" y="820" width="80" height="62" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+<text x="80" y="846" text-anchor="middle" font-size="10" font-weight="bold" fill="#f1f5f9" font-family="Courier New">B1</text>
+<text x="80" y="862" text-anchor="middle" font-size="8" fill="#94a3b8" font-family="Courier New">Cycle</text>
+<circle cx="80" cy="820" r="3.5" fill="#a855f7"/>
+<circle cx="80" cy="882" r="3.5" fill="#64748b"/>
+<use href="#gnd" x="68" y="884"/>
+<!-- B2 -->
+<rect x="140" y="820" width="80" height="62" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+<text x="180" y="846" text-anchor="middle" font-size="10" font-weight="bold" fill="#f1f5f9" font-family="Courier New">B2</text>
+<text x="180" y="862" text-anchor="middle" font-size="8" fill="#94a3b8" font-family="Courier New">Dismiss</text>
+<circle cx="180" cy="820" r="3.5" fill="#a855f7"/>
+<circle cx="180" cy="882" r="3.5" fill="#64748b"/>
+<use href="#gnd" x="168" y="884"/>
+<!-- B3 -->
+<rect x="240" y="820" width="80" height="62" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+<text x="280" y="846" text-anchor="middle" font-size="10" font-weight="bold" fill="#f1f5f9" font-family="Courier New">B3</text>
+<text x="280" y="862" text-anchor="middle" font-size="8" fill="#94a3b8" font-family="Courier New">Refresh</text>
+<circle cx="280" cy="820" r="3.5" fill="#a855f7"/>
+<circle cx="280" cy="882" r="3.5" fill="#64748b"/>
+<use href="#gnd" x="268" y="884"/>
+<!-- B4 -->
+<rect x="340" y="820" width="80" height="62" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+<text x="380" y="846" text-anchor="middle" font-size="10" font-weight="bold" fill="#f1f5f9" font-family="Courier New">B4</text>
+<text x="380" y="862" text-anchor="middle" font-size="8" fill="#94a3b8" font-family="Courier New">Spare</text>
+<circle cx="380" cy="820" r="3.5" fill="#a855f7"/>
+<circle cx="380" cy="882" r="3.5" fill="#64748b"/>
+<use href="#gnd" x="368" y="884"/>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     WIRES — fan-out from ESP32
+     ══════════════════════════════════════════════════════════════════ -->
+
+<!-- ── Power: DFR0559 5V → ESP32 VIN ─────────────────────────── -->
+<polyline points="270,188 270,253 370,253 370,270" stroke="#fb923c" stroke-width="2.5" fill="none"/>
+<text x="280" y="247" font-size="8" fill="#fdba74" font-family="Courier New">5V → VIN</text>
+
+<!-- ── Power: DFR0559 5V branch → WS2812B VCC (5V direct) ─────── -->
+<polyline points="270,188 270,253 940,253 940,668 710,668"
+          stroke="#fb923c" stroke-width="2" fill="none" stroke-dasharray="6,3"/>
+<text x="690" y="248" font-size="8" fill="#fdba74" font-family="Courier New">5V → WS2812B</text>
+
+<!-- ── DFR0559 GND (chassis ground symbol) ────────────────────── -->
+<line x1="320" y1="188" x2="320" y2="210" stroke="#64748b" stroke-width="2"/>
+
+<!-- ── 3V3 rail: ESP32 3V3 pin → MAX17048 VCC + E-ink VCC ──── -->
+<!-- ESP32 3V3 up to rail at y=243 -->
+<line x1="410" y1="270" x2="410" y2="243" stroke="#ef4444" stroke-width="2.5"/>
+<!-- Rail right to E-ink VCC column (then drop) -->
+<polyline points="410,243 695,243 695,358 710,358" stroke="#ef4444" stroke-width="2.5" fill="none"/>
+<!-- Rail left branch up to MAX17048 VCC -->
+<polyline points="490,243 490,188" stroke="#ef4444" stroke-width="2.5" fill="none"/>
+<!-- Junction dots -->
+<circle cx="410" cy="243" r="3.5" fill="#ef4444"/>
+<circle cx="490" cy="243" r="3.5" fill="#ef4444"/>
+<circle cx="695" cy="243" r="3.5" fill="#ef4444"/>
+<text x="500" y="237" font-size="8" fill="#fca5a5" font-family="Courier New">3V3 rail (from ESP32 LDO)</text>
+
+<!-- ── ESP32 GND → MAX17048 GND (top, vertical) ───────────────── -->
+<polyline points="450,270 450,260 525,260 525,188" stroke="#64748b" stroke-width="1.5" fill="none"/>
+
+<!-- ── I²C: ESP32 SDA/SCL → MAX17048 SDA/SCL (UP) ─────────────── -->
+<polyline points="500,270 500,210 585,210 585,188" stroke="#22c55e" stroke-width="1.5" fill="none"/>
+<polyline points="545,270 545,200 620,200 620,188" stroke="#22c55e" stroke-width="1.5" fill="none"/>
+
+<!-- ── SPI to E-ink (yellow) ─────────────────────────────────── -->
+<line x1="580" y1="335" x2="710" y2="408" stroke="#eab308" stroke-width="1.5"/>
+<line x1="580" y1="360" x2="710" y2="433" stroke="#eab308" stroke-width="1.5"/>
+<line x1="580" y1="385" x2="710" y2="458" stroke="#eab308" stroke-width="1.5"/>
+<line x1="580" y1="410" x2="710" y2="483" stroke="#eab308" stroke-width="1.5"/>
+
+<!-- ── E-ink control to E-ink (blue) ─────────────────────────── -->
+<line x1="580" y1="445" x2="710" y2="510" stroke="#3b82f6" stroke-width="1.5"/>
+<line x1="580" y1="470" x2="710" y2="535" stroke="#3b82f6" stroke-width="1.5"/>
+<line x1="580" y1="495" x2="710" y2="558" stroke="#3b82f6" stroke-width="1.5"/>
+
+<!-- ── E-ink GND to ESP32 GND (run along rail) ───────────────── -->
+<polyline points="710,378 685,378 685,265 450,265 450,270" stroke="#64748b" stroke-width="1.5" fill="none" opacity="0.5"/>
+
+<!-- ── WS2812B data: GPIO25 → 470Ω → DIN ─────────────────────── -->
+<polyline points="580,600 615,600" stroke="#a855f7" stroke-width="1.5" fill="none"/>
+<rect x="615" y="592" width="42" height="16" rx="3" fill="#1e293b" stroke="#a855f7" stroke-width="1.5"/>
+<text x="636" y="604" text-anchor="middle" font-size="8" fill="#d8b4fe" font-family="Courier New">470Ω</text>
+<polyline points="657,600 680,600 680,705 710,705" stroke="#a855f7" stroke-width="1.5" fill="none"/>
+
+<!-- ── WS2812B 100nF cap note ────────────────────────────────── -->
+<text x="940" y="668" font-size="8" fill="#fb923c" font-family="Courier New">+100nF cap</text>
+<text x="940" y="680" font-size="8" fill="#fb923c" font-family="Courier New">VCC→GND</text>
+<text x="940" y="692" font-size="8" fill="#64748b" font-family="Courier New">(close to LED)</text>
+
+<!-- ── WS2812B GND ────────────────────────────────────────────── -->
+<polyline points="710,688 690,688 690,720 450,720 450,720" stroke="#64748b" stroke-width="1.5" fill="none" opacity="0.5"/>
+
+<!-- ── Buttons (purple dashed L-shape: ESP32 left → button top) ─ -->
+<polyline points="320,555 80,555 80,820" stroke="#a855f7" stroke-width="1.5" fill="none" stroke-dasharray="5,3"/>
+<polyline points="320,585 180,585 180,820" stroke="#a855f7" stroke-width="1.5" fill="none" stroke-dasharray="5,3"/>
+<polyline points="320,615 280,615 280,820" stroke="#a855f7" stroke-width="1.5" fill="none" stroke-dasharray="5,3"/>
+<polyline points="320,645 380,645 380,820" stroke="#a855f7" stroke-width="1.5" fill="none" stroke-dasharray="5,3"/>
+
+<!-- ── GPIO14 CHRG optional (dashed grey) ─────────────────────── -->
+<polyline points="320,690 250,690 250,210 370,210 370,188" stroke="#475569" stroke-width="1.2" fill="none" stroke-dasharray="3,3"/>
+<text x="155" y="700" font-size="8" fill="#475569" font-family="Courier New">[opt] CHRG status</text>
+<text x="155" y="711" font-size="8" fill="#475569" font-family="Courier New">active-LOW charging</text>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     LEGEND (right side)
+     ══════════════════════════════════════════════════════════════════ -->
+<rect x="970" y="270" width="395" height="635" rx="8" fill="#0f1f38" stroke="#334155" stroke-width="1.5"/>
+<text x="1167" y="294" text-anchor="middle" font-size="11" font-weight="bold" fill="#94a3b8" font-family="Courier New">LEGEND</text>
+
+<!-- Wire colours -->
+<text x="985" y="318" font-size="9" font-weight="bold" fill="#94a3b8" font-family="Courier New">WIRE COLOURS</text>
+<line x1="985" y1="338" x2="1035" y2="338" stroke="#ef4444" stroke-width="2.5"/>
+<text x="1045" y="342" font-size="9" fill="#cbd5e1" font-family="Courier New">3V3 / battery+ / VCC</text>
+
+<line x1="985" y1="358" x2="1035" y2="358" stroke="#fb923c" stroke-width="2.5"/>
+<text x="1045" y="362" font-size="9" fill="#cbd5e1" font-family="Courier New">5V (DFR0559 → VIN)</text>
+
+<line x1="985" y1="378" x2="1035" y2="378" stroke="#fb923c" stroke-width="2" stroke-dasharray="6,3"/>
+<text x="1045" y="382" font-size="9" fill="#cbd5e1" font-family="Courier New">5V branch (→ WS2812B)</text>
+
+<line x1="985" y1="398" x2="1035" y2="398" stroke="#64748b" stroke-width="2.5"/>
+<text x="1045" y="402" font-size="9" fill="#cbd5e1" font-family="Courier New">GND / battery−</text>
+
+<line x1="985" y1="418" x2="1035" y2="418" stroke="#eab308" stroke-width="1.5"/>
+<text x="1045" y="422" font-size="9" fill="#cbd5e1" font-family="Courier New">SPI (CLK/MOSI/MISO/CS)</text>
+
+<line x1="985" y1="438" x2="1035" y2="438" stroke="#3b82f6" stroke-width="1.5"/>
+<text x="1045" y="442" font-size="9" fill="#cbd5e1" font-family="Courier New">E-ink ctrl (DC/RST/BUSY)</text>
+
+<line x1="985" y1="458" x2="1035" y2="458" stroke="#22c55e" stroke-width="1.5"/>
+<text x="1045" y="462" font-size="9" fill="#cbd5e1" font-family="Courier New">I²C (SDA/SCL)</text>
+
+<line x1="985" y1="478" x2="1035" y2="478" stroke="#a855f7" stroke-width="1.5"/>
+<text x="1045" y="482" font-size="9" fill="#cbd5e1" font-family="Courier New">LED data</text>
+
+<line x1="985" y1="498" x2="1035" y2="498" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="5,3"/>
+<text x="1045" y="502" font-size="9" fill="#cbd5e1" font-family="Courier New">Button signal (→ GND)</text>
+
+<!-- Build notes -->
+<line x1="980" y1="520" x2="1355" y2="520" stroke="#334155" stroke-width="1"/>
+<text x="985" y="540" font-size="9" font-weight="bold" fill="#94a3b8" font-family="Courier New">BUILD NOTES</text>
+
+<text x="985" y="560" font-size="8" fill="#fca5a5" font-family="Courier New">⚠ MAX17048 sits IN-LINE between</text>
+<text x="985" y="572" font-size="8" fill="#fca5a5" font-family="Courier New">  battery and DFR0559:</text>
+<text x="999" y="586" font-size="8" fill="#cbd5e1" font-family="Courier New">battery JST → MAX JST socket</text>
+<text x="999" y="598" font-size="8" fill="#cbd5e1" font-family="Courier New">MAX BAT+/− header → DFR0559 KF396</text>
+
+<text x="985" y="618" font-size="8" fill="#fca5a5" font-family="Courier New">⚠ DFR0559 has NO 3.3V output</text>
+<text x="999" y="632" font-size="8" fill="#cbd5e1" font-family="Courier New">5V → ESP32 VIN → onboard LDO</text>
+<text x="999" y="644" font-size="8" fill="#cbd5e1" font-family="Courier New">→ ESP32 3V3 pin → peripherals</text>
+
+<text x="985" y="664" font-size="8" fill="#64748b" font-family="Courier New">• 470Ω inline on GPIO25 → DIN</text>
+<text x="985" y="676" font-size="8" fill="#64748b" font-family="Courier New">• 100nF cap WS2812B VCC↔GND</text>
+<text x="985" y="688" font-size="8" fill="#64748b" font-family="Courier New">• Buttons: ESPHome internal pull-up</text>
+<text x="985" y="700" font-size="8" fill="#64748b" font-family="Courier New">• SPI wires &lt; 15 cm, kept short</text>
+<text x="985" y="712" font-size="8" fill="#64748b" font-family="Courier New">• MISO optional (write-only display)</text>
+<text x="985" y="724" font-size="8" fill="#64748b" font-family="Courier New">• GPIO15 strapping pin warning OK</text>
+
+<!-- GPIO quick-ref -->
+<line x1="980" y1="742" x2="1355" y2="742" stroke="#334155" stroke-width="1"/>
+<text x="985" y="762" font-size="9" font-weight="bold" fill="#94a3b8" font-family="Courier New">GPIO QUICK-REF</text>
+<text x="985" y="780" font-size="8" fill="#cbd5e1" font-family="Courier New">SPI:  18=CLK  23=MOSI  19=MISO  15=CS</text>
+<text x="985" y="794" font-size="8" fill="#cbd5e1" font-family="Courier New">CTRL: 17=DC   16=RST   4=BUSY</text>
+<text x="985" y="808" font-size="8" fill="#cbd5e1" font-family="Courier New">I²C:  21=SDA  22=SCL</text>
+<text x="985" y="822" font-size="8" fill="#cbd5e1" font-family="Courier New">LED:  25=WS2812B DIN (via 470Ω)</text>
+<text x="985" y="836" font-size="8" fill="#cbd5e1" font-family="Courier New">BTN:  32=B1  33=B2  26=B3  27=B4</text>
+<text x="985" y="850" font-size="8" fill="#64748b" font-family="Courier New">OPT:  14=CHRG (DFR0559 status)</text>
+
+<!-- Power flow -->
+<line x1="980" y1="866" x2="1355" y2="866" stroke="#334155" stroke-width="1"/>
+<text x="985" y="884" font-size="9" font-weight="bold" fill="#94a3b8" font-family="Courier New">POWER FLOW</text>
+<text x="985" y="900" font-size="8" fill="#cbd5e1" font-family="Courier New">Solar → DFR0559 → MAX17048 → Battery</text>
+
+<!-- Phase tag -->
+<text x="20" y="945" font-size="9" fill="#334155" font-family="Courier New">Phase 2: live data flashed · Phase 3: buttons + LED + deep sleep pending</text>
+
+</svg>
+<p>Open in any browser · Power chain reads left-to-right at the top · ESP32 in the centre fans signals out · MAX17048 shown in-line between charger and battery</p>
+</body>
+</html>

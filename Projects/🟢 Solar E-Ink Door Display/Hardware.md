@@ -23,8 +23,9 @@ tags: [hardware, bom, wiring]
 
 | Stage | Component | Notes |
 |---|---|---|
-| Solar input regulation | DFRobot DFR0559 (CN3791 MPPT) | 5V solar input → Li-Po, MPPT tracking, up to 2A charge |
-| Battery → 3.3V | Built into DFR0559 | Stable 3.3V regulated output |
+| Solar input regulation | DFRobot DFR0559 (CN3791 MPPT) | 5V solar input → Li-Po, MPPT tracking, up to 900mA charge |
+| DFR0559 → ESP32 | DFR0559 5V out → ESP32 **VIN** pin | DFR0559 has no 3.3V rail — feed 5V into VIN, not 3V3 |
+| Battery → 3.3V | ESP32 onboard LDO (AMS1117-3.3) | 3V3 pin powers E-ink VCC and MAX17048 VCC |
 | 5V rail | DFR0559 5V output | For WS2812B LED only |
 | Battery monitoring | MAX17048 (I2C) | Reports SoC to ESP32 → visible in HA |
 
@@ -54,7 +55,7 @@ tags: [hardware, bom, wiring]
 | GPIO23 | SPI MOSI (VSPI) | e-ink MOSI |
 | GPIO19 | SPI MISO (VSPI) | e-ink MISO (optional) |
 | GPIO18 | SPI CLK (VSPI) | e-ink CLK |
-| GPIO5  | SPI CS (VSPI) | e-ink CS |
+| GPIO15 | SPI CS (VSPI) | e-ink CS |
 | GPIO17 | DC | e-ink DC |
 | GPIO16 | RST | e-ink RST |
 | GPIO4  | BUSY | e-ink BUSY |
