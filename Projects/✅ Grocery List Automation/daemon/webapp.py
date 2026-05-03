@@ -13,6 +13,8 @@ HA_TODO_ENTITY = os.getenv("HA_TODO_ENTITY")
 DATA_DIR       = os.getenv("DATA_DIR", "./data")
 UNKNOWN_LOG    = os.path.join(DATA_DIR, "unknown.jsonl")
 CUSTOM_MAP     = os.path.join(DATA_DIR, "custom_barcodes.json")
+BARCODE_INDEX      = os.path.join(DATA_DIR, "barcode_index.json")
+TRANSLATION_CACHE  = os.path.join(DATA_DIR, "translation_cache.json")
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -158,6 +160,84 @@ def custom_delete():
         save_custom(data)
         flash(f"Barcode {barcode} deleted.", "ok")
     return redirect(url_for("custom"))
+
+def _load_translation_cache():
+    try:
+        with open(TRANSLATION_CACHE) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def _save_translation_cache(cache):
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        with open(TRANSLATION_CACHE, "w") as f:
+            json.dump(cache, f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+
+def _translate_to_de(name):
+    """Translate name to German via MyMemory (free, no key). Returns original on failure."""
+    cache = _load_translation_cache()
+    if name in cache:
+        return cache[name]
+    try:
+        r = requests.get(
+            "https://api.mymemory.translated.net/get",
+            params={"q": name, "langpair": "autodetect|de"},
+            timeout=5,
+        )
+        result = r.json().get("responseData", {}).get("translatedText", "")
+        if result and result.upper() != "INVALID LANGUAGE PAIR":
+            cache[name] = result
+            _save_translation_cache(cache)
+            return result
+    except Exception:
+        pass
+    return name
+
+def load_barcode_index():
+    try:
+        with open(BARCODE_INDEX) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def fetch_ha_items():
+    try:
+        r = requests.post(
+            f"{HA_URL}/api/services/todo/get_items?return_response",
+            headers={"Authorization": f"Bearer {HA_TOKEN}", "Content-Type": "application/json"},
+            json={"entity_id": HA_TODO_ENTITY}, timeout=5,
+        )
+        if r.status_code != 200:
+            return None
+        data   = r.json()
+        bucket = data.get("service_response", {}).get(HA_TODO_ENTITY, {})
+        items  = bucket.get("items", []) or []
+        return [it for it in items if it.get("status") != "completed"]
+    except Exception:
+        return None
+
+@app.route("/shop")
+def shop():
+    from urllib.parse import quote_plus
+    items = fetch_ha_items() or []
+    index = load_barcode_index()
+    rows  = []
+    for it in items:
+        name = it.get("summary", "")
+        ean  = index.get(name)
+        if ean:
+            term = ean
+        else:
+            term = _translate_to_de(name)
+        rows.append({
+            "name":    name,
+            "url":     f"https://www.coop.ch/de/search/?text={quote_plus(term)}",
+            "has_ean": bool(ean),
+        })
+    return render_template("shop.html", rows=rows)
 
 @app.route("/shutdown", methods=["POST"])
 def shutdown():
