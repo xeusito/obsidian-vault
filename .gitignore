@@ -6,3 +6,8 @@
 Thumbs.db
 *.tmp
 *conflicted copy*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
