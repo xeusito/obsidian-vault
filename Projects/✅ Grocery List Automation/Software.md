@@ -21,10 +21,14 @@ webapp.py               — Flask web UI (manual resolution + custom barcode edi
 data/
   unknown.jsonl         — unknown barcodes queue (append-only log)
   custom_barcodes.json  — barcode → name map (hand-curated + auto-saved on resolution)
+  barcode_index.json    — item name → EAN map (auto-written on every successful scan; used by /shop)
+  translation_cache.json — item name → German translation (MyMemory, cached after first lookup; used by /shop)
+  manual_items.jsonl    — append-only log of manually-typed entries (recents + autocomplete source)
 templates/
   base.html
   unknown.html
   custom.html
+  shop.html             — Coop shopping page (mobile-first, one-tap product links)
 ~/Desktop/
   Start Scanner.desktop — desktop icon to restart the scanner daemon
 ```
@@ -271,7 +275,11 @@ Flask app on port 5000, LAN-only. Two views + a control endpoint:
 
 1. **`/unknown`** — lists unresolved entries from `unknown.jsonl`. Type a name and hit "Add to Bring!" → calls HA, removes from queue, saves to `custom_barcodes.json`. "Dismiss" removes without adding. AI identification is done from the touchscreen, not here.
 2. **`/custom`** — full CRUD editor for `custom_barcodes.json`. Add, **Edit** (inline name change), and Delete. Used for pre-printed barcodes on bulk/unlabelled items (coffee jar, flour tin, etc.).
-3. **`POST /shutdown`** — invoked by the HA `rest_command.shutdown_grocery_scanner_pi` when the user taps the *Shutdown Pi* button on the thermal-warning push notification. Requires `Authorization: Bearer <HA_TOKEN>`; runs `sudo shutdown -h now` and returns 202.
+3. **`/shop`** — mobile-first Coop shopping page. Fetches the active HA todo list and renders each item as a full-width tappable link to `https://www.coop.ch/de/search/?text=<term>`. On Android, tapping a Coop URL opens directly in the Coop app. Term resolution per item:
+   - If the item name is in `data/barcode_index.json` → EAN used as search term (exact product match).
+   - Otherwise → name translated to German via the [MyMemory free API](https://api.mymemory.translated.net/get) (no key required, 1000 words/day free) and cached in `data/translation_cache.json`. Handles DE/EN/ES names correctly.
+   - Green dot = EAN match; grey dot = translated text search.
+4. **`POST /shutdown`** — invoked by the HA `rest_command.shutdown_grocery_scanner_pi` when the user taps the *Shutdown Pi* button on the thermal-warning push notification. Requires `Authorization: Bearer <HA_TOKEN>`; runs `sudo shutdown -h now` and returns 202.
 
 ### HA dashboard integration
 HA runs on HTTPS; browsers block HTTP iframes (mixed content). Solution: button card that opens the web UI in a new tab.
@@ -389,6 +397,16 @@ delay: down 5m multiplier 1.5 max 1h
 After editing: `sudo netdatacli reload-health`. Verify the alert is loaded:
 ```bash
 curl -s http://localhost:19999/api/v1/alarms?all | grep wifi_signal_low
+```
+
+#### Temporarily disabling the WiFi alarm
+Add `enabled: no` on line 2 of the config and reload — no restart needed:
+```bash
+sudo sed -i '2i\ enabled: no' /etc/netdata/health.d/wifi_signal.conf && sudo netdatacli reload-health
+```
+Re-enable by removing that line:
+```bash
+sudo sed -i '/^ enabled: no/d' /etc/netdata/health.d/wifi_signal.conf && sudo netdatacli reload-health
 ```
 
 ### Other alerts in use
