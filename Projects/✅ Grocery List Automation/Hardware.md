@@ -63,5 +63,23 @@ nmcli connection show MoreVilla | grep -i 'band\|powersave\|autoconnect'
 
 Signal strength is monitored continuously via the Netdata `wifi_signal_low` alert — see Software.md → Monitoring.
 
+### MikroTik cAP ax — 2.4 GHz AX incompatibility
+The Pi 4's Cypress BCM4345/6 chip does not correctly handle HE (802.11ax) management frames on 2.4 GHz. When the cAP ax 2.4 GHz radio was set to **2GHz-AX**, the Pi failed to associate entirely — other clients (phones, IoT, laptops) were unaffected.
+
+**Fix:** change the 2.4 GHz band on the MikroTik to `2ghz-n`:
+```
+/interface/wifi/configuration
+set [find name=<2g-config-name>] channel.band=2ghz-n
+```
+Or via Winbox: **WiFi → Configurations →** *(2.4 GHz profile)* **→ Channel → Band: `2ghz-n`** → Apply.
+
+**Trade-off:** 2.4 GHz drops from AX (HE) back to N (HT), which costs nothing meaningful — the band is too congested for HE gains to matter. **5 GHz remains on AX.** This is a Pi firmware limitation (same Broadcom/Cypress family across Pi 3B+, 4, 5, Zero 2 W), not a MikroTik bug.
+
+Diagnostic commands (Pi side):
+```bash
+dmesg | grep -i brcmfmac   # chipset + firmware version
+iw dev wlan0 link           # current association state
+```
+
 ## Power
 Pi 4 + scanner + display fit comfortably within a 3A USB-C supply.
